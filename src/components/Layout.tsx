@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, User, RefreshCw, TrendingUp } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, User, RefreshCw, TrendingUp, LogOut } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface LayoutProps {
   children: ReactNode
@@ -8,12 +9,23 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { signOut, user } = useAuth()
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/profile', label: 'Profil', icon: User },
     { path: '/update', label: 'Aktualizacja portfela', icon: RefreshCw },
   ]
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,6 +57,16 @@ export default function Layout({ children }: LayoutProps) {
                   )
                 })}
               </div>
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 mr-4">{user?.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Wyloguj
+              </button>
             </div>
           </div>
         </div>
