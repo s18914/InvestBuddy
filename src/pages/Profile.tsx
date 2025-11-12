@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import { useAssets } from '@/hooks/useAssets'
-import AddAssetForm from '@/components/AddAssetForm'
+import { AssetCategory } from '@/types/database.types'
+import AssetTypeSelector from '@/components/AssetTypeSelector'
+import AssetDetailsForm from '@/components/AssetDetailsForm'
 import AssetList from '@/components/AssetList'
 import PortfolioPieChart from '@/components/PortfolioPieChart'
 
+type Step = 'selector' | 'details' | 'portfolio'
+
 export default function Profile() {
-  const { assets, loading, addAsset, updateAsset, deleteAsset } = useAssets()
+  const { assets, loading, addAsset, updateAsset, deleteAsset, refetch } = useAssets()
+  const [step, setStep] = useState<Step>('selector')
+  const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([])
 
   if (loading) {
     return (
@@ -19,27 +26,67 @@ export default function Profile() {
     )
   }
 
+  if (assets.length > 0) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Management</h1>
+          <p className="text-gray-600">Manage your investment portfolio</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <AssetList
+              assets={assets}
+              onUpdate={updateAsset}
+              onDelete={deleteAsset}
+            />
+          </div>
+
+          <div className="lg:sticky lg:top-6 h-fit">
+            <PortfolioPieChart assets={assets} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const handleContinue = (types: AssetCategory[]) => {
+    setSelectedTypes(types)
+    setStep('details')
+  }
+
+  const handleBack = () => {
+    setStep('selector')
+  }
+
+  const handleSave = async (assetsToSave: Array<{
+    name: string
+    category: AssetCategory
+    color: string
+    current_value: number
+    currency: string
+  }>) => {
+    for (const asset of assetsToSave) {
+      await addAsset(asset)
+    }
+    await refetch()
+    setStep('portfolio')
+  }
+
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Management</h1>
-        <p className="text-gray-600">Define your investment portfolio and track your assets</p>
-      </div>
+      {step === 'selector' && (
+        <AssetTypeSelector onContinue={handleContinue} />
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <AddAssetForm onAdd={addAsset} />
-          <AssetList
-            assets={assets}
-            onUpdate={updateAsset}
-            onDelete={deleteAsset}
-          />
-        </div>
-
-        <div className="lg:sticky lg:top-6 h-fit">
-          <PortfolioPieChart assets={assets} />
-        </div>
-      </div>
+      {step === 'details' && (
+        <AssetDetailsForm
+          selectedTypes={selectedTypes}
+          onBack={handleBack}
+          onSave={handleSave}
+        />
+      )}
     </div>
   )
 }
