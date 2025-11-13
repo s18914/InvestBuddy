@@ -35,5 +35,5 @@ export const CUSTOM_ASSET_COLORS = [
 export const CUSTOM_ASSET_CONFIG: AssetTypeConfig = {
   category: "custom",
   label: "Inne",
-  color: "#ACA9A7",
+  color: "#a5a5a5ff",
 };

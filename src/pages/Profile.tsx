@@ -1,17 +1,19 @@
-import { useState } from 'react'
-import { useAssets } from '@/hooks/useAssets'
-import { AssetCategory } from '@/types/database.types'
-import AssetTypeSelector from '@/components/AssetTypeSelector'
-import AssetDetailsForm from '@/components/AssetDetailsForm'
-import AssetList from '@/components/AssetList'
-import PortfolioPieChart from '@/components/PortfolioPieChart'
+import { useState } from "react";
+import { useAssets } from "@/hooks/useAssets";
+import { AssetCategory } from "@/types/database.types";
+import AssetTypeSelector from "@/components/AssetTypeSelector";
+import AssetDetailsWizard from "@/components/AssetDetailsWizard";
+import AssetList from "@/components/AssetList";
+import PortfolioPieChart from "@/components/PortfolioPieChart";
+import { AssetWithDetails } from "@/types/assetForms.types";
 
-type Step = 'selector' | 'details' | 'portfolio'
+type Step = "selector" | "details" | "portfolio";
 
 export default function Profile() {
-  const { assets, loading, addAsset, updateAsset, deleteAsset, refetch } = useAssets()
-  const [step, setStep] = useState<Step>('selector')
-  const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([])
+  const { assets, loading, addAsset, updateAsset, deleteAsset, refetch } =
+    useAssets();
+  const [step, setStep] = useState<Step>("selector");
+  const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
 
   if (loading) {
     return (
@@ -23,14 +25,16 @@ export default function Profile() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (assets.length > 0) {
     return (
       <div className="px-4 py-6 sm:px-0">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Portfolio Management
+          </h1>
           <p className="text-gray-600">Manage your investment portfolio</p>
         </div>
 
@@ -48,45 +52,46 @@ export default function Profile() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   const handleContinue = (types: AssetCategory[]) => {
-    setSelectedTypes(types)
-    setStep('details')
-  }
+    setSelectedTypes(types);
+    setStep("details");
+  };
 
   const handleBack = () => {
-    setStep('selector')
-  }
+    setStep("selector");
+  };
 
-  const handleSave = async (assetsToSave: Array<{
-    name: string
-    category: AssetCategory
-    color: string
-    current_value: number
-    currency: string
-  }>) => {
+  const handleSave = async (assetsToSave: AssetWithDetails[]) => {
     for (const asset of assetsToSave) {
-      await addAsset(asset)
+      await addAsset(
+        {
+          name: asset.name,
+          category: asset.category,
+          color: asset.color,
+          current_value: asset.current_value,
+          currency: asset.currency,
+        },
+        asset.details
+      );
     }
-    await refetch()
-    setStep('portfolio')
-  }
+    await refetch();
+    setStep("portfolio");
+  };
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      {step === 'selector' && (
-        <AssetTypeSelector onContinue={handleContinue} />
-      )}
+      {step === "selector" && <AssetTypeSelector onContinue={handleContinue} />}
 
-      {step === 'details' && (
-        <AssetDetailsForm
+      {step === "details" && (
+        <AssetDetailsWizard
           selectedTypes={selectedTypes}
           onBack={handleBack}
           onSave={handleSave}
         />
       )}
     </div>
-  )
+  );
 }

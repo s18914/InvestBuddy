@@ -62,31 +62,37 @@ CREATE TABLE assets (
 
 -- Special asset details for bonds
 CREATE TABLE bond_details (
-  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
   bond_type TEXT NOT NULL,
   is_inflation_linked BOOLEAN DEFAULT FALSE,
-  interest_rate DECIMAL(5,2),
-  maturity_date DATE,
-  conditions JSONB
+  inflation_rate DECIMAL(5,2),
+  interest_rate DECIMAL(5,2) NOT NULL,
+  purchase_date DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Special asset details for deposits
 CREATE TABLE deposit_details (
-  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
   bank_name TEXT NOT NULL,
   interest_rate DECIMAL(5,2) NOT NULL,
   start_date DATE NOT NULL,
   duration_months INTEGER NOT NULL,
   maturity_date DATE NOT NULL,
-  alert_sent BOOLEAN DEFAULT FALSE
+  alert_sent BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Special asset details for savings accounts
 CREATE TABLE savings_account_details (
-  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE PRIMARY KEY,
-  bank_name TEXT NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  account_name TEXT,
   interest_rate DECIMAL(5,2) NOT NULL,
-  last_interest_calculation DATE
+  last_interest_calculation DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Special asset details for IKE/IKZE
@@ -95,7 +101,32 @@ CREATE TABLE retirement_account_details (
   account_type TEXT NOT NULL CHECK (account_type IN ('IKE', 'IKZE')),
   annual_limit DECIMAL(12,2) NOT NULL,
   contributed_this_year DECIMAL(12,2) DEFAULT 0,
-  year INTEGER NOT NULL
+  year INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Special asset details for investment funds
+CREATE TABLE fund_details (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  fund_name TEXT NOT NULL,
+  fund_category TEXT NOT NULL CHECK (fund_category IN ('equity', 'mixed', 'absolute_return', 'bonds', 'other')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Special asset details for gold
+CREATE TABLE gold_details (
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE PRIMARY KEY,
+  ounces DECIMAL(12,4) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Special asset details for currencies
+CREATE TABLE currency_details (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  currency_code TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Transactions (purchases and sales)
@@ -161,6 +192,9 @@ ALTER TABLE bond_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deposit_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE savings_account_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE retirement_account_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fund_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gold_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE currency_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
