@@ -12,10 +12,14 @@ CREATE TABLE profiles (
 CREATE TABLE mifid_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  risk_tolerance TEXT NOT NULL,
-  investment_horizon TEXT NOT NULL,
-  financial_goals TEXT[],
-  sector_preferences TEXT[],
+  question_1_answer TEXT NOT NULL,
+  question_2_answer TEXT NOT NULL,
+  question_3_answer TEXT NOT NULL,
+  question_4_answer TEXT NOT NULL,
+  question_5_answer TEXT NOT NULL,
+  question_6_answer TEXT NOT NULL,
+  total_score INTEGER NOT NULL,
+  investor_profile TEXT NOT NULL CHECK (investor_profile IN ('cautious', 'stable', 'balanced', 'dynamic')),
   completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id)
 );
@@ -202,6 +206,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Users can only access their own data
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 CREATE POLICY "Users can view own mifid" ON mifid_responses FOR SELECT USING (auth.uid() = user_id);

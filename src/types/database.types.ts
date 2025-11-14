@@ -19,13 +19,19 @@ export interface Profile {
   updated_at: string;
 }
 
+export type InvestorProfile = "cautious" | "stable" | "balanced" | "dynamic";
+
 export interface MifidResponse {
   id: string;
   user_id: string;
-  risk_tolerance: string;
-  investment_horizon: string;
-  financial_goals: string[];
-  sector_preferences: string[];
+  question_1_answer: string;
+  question_2_answer: string;
+  question_3_answer: string;
+  question_4_answer: string;
+  question_5_answer: string;
+  question_6_answer: string;
+  total_score: number;
+  investor_profile: InvestorProfile;
   completed_at: string;
 }
 
