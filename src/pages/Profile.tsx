@@ -4,8 +4,6 @@ import { useQuestionnaire } from "@/hooks/useQuestionnaire";
 import { AssetCategory } from "@/types/database.types";
 import AssetTypeSelector from "@/components/AssetTypeSelector";
 import AssetDetailsWizard from "@/components/AssetDetailsWizard";
-import AssetList from "@/components/AssetList";
-import PortfolioPieChart from "@/components/PortfolioPieChart";
 import InvestorProfileCard from "@/components/InvestorProfileCard";
 import UserSettingsCard from "@/components/UserSettingsCard";
 import { AssetWithDetails } from "@/types/assetForms.types";
@@ -13,8 +11,7 @@ import { AssetWithDetails } from "@/types/assetForms.types";
 type Step = "selector" | "details" | "portfolio";
 
 export default function Profile() {
-  const { assets, loading, addAsset, updateAsset, deleteAsset, refetch } =
-    useAssets();
+  const { assets, loading, addAsset, refetch } = useAssets();
   const { response: questionnaireResponse, loading: questionnaireLoading } =
     useQuestionnaire();
   const [step, setStep] = useState<Step>("selector");
@@ -26,7 +23,7 @@ export default function Profile() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading portfolio...</p>
+            <p className="mt-4 text-gray-600">Ładowanie profilu...</p>
           </div>
         </div>
       </div>
