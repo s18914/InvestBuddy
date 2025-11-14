@@ -67,6 +67,7 @@ export default function Dashboard() {
   const handleContinue = () => {
     setStep("completed");
     window.location.reload();
+    window.location.href = "/profile";
   };
 
   if (submitting) {

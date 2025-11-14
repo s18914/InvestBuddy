@@ -217,6 +217,28 @@ CREATE POLICY "Users can manage own target portfolio" ON target_portfolio FOR AL
 
 CREATE POLICY "Users can manage own assets" ON assets FOR ALL USING (auth.uid() = user_id);
 
+-- Policies for asset details tables (join through assets table)
+CREATE POLICY "Users can manage own bond details" ON bond_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = bond_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own deposit details" ON deposit_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = deposit_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own savings details" ON savings_account_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = savings_account_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own retirement details" ON retirement_account_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = retirement_account_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own fund details" ON fund_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = fund_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own gold details" ON gold_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = gold_details.asset_id AND assets.user_id = auth.uid()));
+
+CREATE POLICY "Users can manage own currency details" ON currency_details FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = currency_details.asset_id AND assets.user_id = auth.uid()));
+
 CREATE POLICY "Users can manage own transactions" ON transactions FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can manage own snapshots" ON portfolio_snapshots FOR ALL USING (auth.uid() = user_id);
