@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useAssets } from "@/hooks/useAssets";
+import { useQuestionnaire } from "@/hooks/useQuestionnaire";
 import { AssetCategory } from "@/types/database.types";
 import AssetTypeSelector from "@/components/AssetTypeSelector";
 import AssetDetailsWizard from "@/components/AssetDetailsWizard";
 import AssetList from "@/components/AssetList";
 import PortfolioPieChart from "@/components/PortfolioPieChart";
+import InvestorProfileCard from "@/components/InvestorProfileCard";
+import UserSettingsCard from "@/components/UserSettingsCard";
 import { AssetWithDetails } from "@/types/assetForms.types";
 
 type Step = "selector" | "details" | "portfolio";
@@ -12,6 +15,8 @@ type Step = "selector" | "details" | "portfolio";
 export default function Profile() {
   const { assets, loading, addAsset, updateAsset, deleteAsset, refetch } =
     useAssets();
+  const { response: questionnaireResponse, loading: questionnaireLoading } =
+    useQuestionnaire();
   const [step, setStep] = useState<Step>("selector");
   const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
 
@@ -31,25 +36,12 @@ export default function Profile() {
   if (assets.length > 0) {
     return (
       <div className="px-4 py-6 sm:px-0">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Portfolio Management
-          </h1>
-          <p className="text-gray-600">Manage your investment portfolio</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <AssetList
-              assets={assets}
-              onUpdate={updateAsset}
-              onDelete={deleteAsset}
-            />
-          </div>
-
-          <div className="lg:sticky lg:top-6 h-fit">
-            <PortfolioPieChart assets={assets} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <InvestorProfileCard
+            response={questionnaireResponse}
+            loading={questionnaireLoading}
+          />
+          <UserSettingsCard />
         </div>
       </div>
     );
