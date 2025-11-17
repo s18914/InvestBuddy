@@ -37,10 +37,17 @@ export default function Dashboard() {
   if (hasCompleted && step === "welcome") {
     return (
       <div className="px-4 py-6 sm:px-0">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          Witaj ponownie 👋
+        </h1>
 
         <div className="space-y-6">
           <PortfolioStackedChart />
+
+          <h2>
+            Wykres z analizą portfela miesiąc po miesiącu i zaoszczędzonymi
+            kwotami
+          </h2>
 
           {assets.length > 0 && (
             <>

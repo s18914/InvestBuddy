@@ -11,15 +11,15 @@ export const PREDEFINED_ASSETS: AssetTypeConfig[] = [
   {
     category: "savings_accounts",
     label: "Konto oszczędnościowe",
-    color: "#5F4B8B",
+    color: "#6127ddff",
   },
-  { category: "investment_funds", label: "Fundusze", color: "#6667AB" },
-  { category: "bonds", label: "Obligacje", color: "#BB2649" },
+  { category: "investment_funds", label: "Fundusze", color: "#6264daff" },
+  { category: "bonds", label: "Obligacje", color: "#e20035ff" },
   { category: "ike_ikze", label: "IKE/IKZE", color: "#FF6F61" },
-  { category: "ppk", label: "PPK", color: "#FFBE98" },
-  { category: "gold", label: "Złoto", color: "#F5DF4D" },
-  { category: "currencies", label: "Waluty", color: "#ffb937ff" },
-  { category: "cash", label: "Gotówka", color: "#A47864" },
+  { category: "ppk", label: "PPK", color: "#e46600ff" },
+  { category: "gold", label: "Złoto", color: "#e2c400ff" },
+  { category: "currencies", label: "Waluty", color: "#df9100ff" },
+  { category: "cash", label: "Gotówka", color: "#8fdb00ff" },
 ];
 
 export const CUSTOM_ASSET_COLORS = [
