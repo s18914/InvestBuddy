@@ -10,6 +10,7 @@ import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
 import ResultScreen from "@/components/questionnaire/ResultScreen";
 import AssetListReadOnly from "@/components/AssetListReadOnly";
 import PortfolioPieChart from "@/components/PortfolioPieChart";
+import PortfolioStackedChart from "@/components/PortfolioStackedChart";
 
 type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
 
@@ -39,6 +40,8 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
         <div className="space-y-6">
+          <PortfolioStackedChart />
+
           {assets.length > 0 && (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

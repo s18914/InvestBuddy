@@ -104,6 +104,27 @@ export function useAssets() {
     }
   };
 
+  const deleteAllAssets = async () => {
+    if (!user) return;
+
+    try {
+      for (const asset of assets) {
+        await deleteAssetDetails(asset.id, asset.category);
+      }
+
+      const { error } = await supabase
+        .from("assets")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setAssets([]);
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   return {
     assets,
     loading,
@@ -111,6 +132,7 @@ export function useAssets() {
     addAsset,
     updateAsset,
     deleteAsset,
+    deleteAllAssets,
     refetch: fetchAssets,
   };
 }

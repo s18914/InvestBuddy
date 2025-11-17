@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   getQuestionnaireResponse,
   saveQuestionnaireResponse,
+  deleteQuestionnaireResponse,
   calculateProfile,
   QuestionnaireAnswers,
   QuestionnaireResult,
@@ -53,12 +54,27 @@ export function useQuestionnaire() {
     }
   };
 
+  const deleteQuestionnaire = async (): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      await deleteQuestionnaireResponse(user.id);
+      setResponse(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete questionnaire"
+      );
+      throw err;
+    }
+  };
+
   return {
     loading,
     response,
     error,
     hasCompleted: !!response,
     submitQuestionnaire,
+    deleteQuestionnaire,
     refetch: fetchResponse,
   };
 }

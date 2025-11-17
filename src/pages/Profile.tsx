@@ -6,14 +6,18 @@ import AssetTypeSelector from "@/components/AssetTypeSelector";
 import AssetDetailsWizard from "@/components/AssetDetailsWizard";
 import InvestorProfileCard from "@/components/InvestorProfileCard";
 import UserSettingsCard from "@/components/UserSettingsCard";
+import ResetProfileButton from "@/components/ResetProfileButton";
 import { AssetWithDetails } from "@/types/assetForms.types";
 
 type Step = "selector" | "details" | "portfolio";
 
 export default function Profile() {
-  const { assets, loading, addAsset, refetch } = useAssets();
-  const { response: questionnaireResponse, loading: questionnaireLoading } =
-    useQuestionnaire();
+  const { assets, loading, addAsset, refetch, deleteAllAssets } = useAssets();
+  const {
+    response: questionnaireResponse,
+    loading: questionnaireLoading,
+    deleteQuestionnaire,
+  } = useQuestionnaire();
   const [step, setStep] = useState<Step>("selector");
   const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
 
@@ -31,15 +35,21 @@ export default function Profile() {
   }
 
   if (assets.length > 0) {
+    const handleReset = async () => {
+      await deleteAllAssets();
+      await deleteQuestionnaire();
+    };
+
     return (
       <div className="px-4 py-6 sm:px-0">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <InvestorProfileCard
             response={questionnaireResponse}
             loading={questionnaireLoading}
           />
           <UserSettingsCard />
         </div>
+        <ResetProfileButton onReset={handleReset} />
       </div>
     );
   }
