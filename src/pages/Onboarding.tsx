@@ -8,12 +8,21 @@ import {
 } from "@/components/ui/card";
 import { BasicInfoStep } from "@/components/onboarding/BasicInfoStep";
 import { SafetyCushionStep } from "@/components/onboarding/SafetyCushionStep";
+import {
+  ModelPortfolioStep,
+  ModelPortfolioAsset,
+} from "@/components/onboarding/ModelPortfolioStep";
 import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { QuestionnaireAnswers } from "@/services/questionnaireService";
 
-type OnboardingStep = "mifid" | "basic-info" | "safety-cushion" | "complete";
+type OnboardingStep =
+  | "mifid"
+  | "basic-info"
+  | "safety-cushion"
+  | "model-portfolio"
+  | "complete";
 
 interface BasicInfo {
   age: number;
@@ -101,7 +110,7 @@ export function Onboarding() {
           current_value: (targetCushionAmount * allocation.deposits) / 100,
           target_allocation: allocation.deposits,
           color: "#3b82f6",
-          is_safety_cushion: true,
+          portfolio_type: "safety_cushion",
         });
       }
 
@@ -114,7 +123,7 @@ export function Onboarding() {
             (targetCushionAmount * allocation.savingsAccounts) / 100,
           target_allocation: allocation.savingsAccounts,
           color: "#10b981",
-          is_safety_cushion: true,
+          portfolio_type: "safety_cushion",
         });
       }
 
@@ -127,7 +136,7 @@ export function Onboarding() {
             (targetCushionAmount * allocation.inflationBonds) / 100,
           target_allocation: allocation.inflationBonds,
           color: "#f59e0b",
-          is_safety_cushion: true,
+          portfolio_type: "safety_cushion",
         });
       }
 
@@ -157,7 +166,61 @@ export function Onboarding() {
         console.error("Error saving user settings:", settingsError);
       }
 
-      // Update profile to mark onboarding as complete
+      // Move to model portfolio step
+      setCurrentStep("model-portfolio");
+    } catch (error) {
+      console.error("Unexpected error during onboarding:", error);
+      alert("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleModelPortfolioSubmit = async (
+    assets: ModelPortfolioAsset[],
+    minCashLevel: number
+  ) => {
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      // Save target portfolio assets
+      const targetAssets = assets.map((asset) => ({
+        user_id: user.id,
+        name: asset.name,
+        category: asset.category,
+        current_value: 0,
+        target_allocation: asset.allocation,
+        color: asset.color,
+        portfolio_type: "target",
+      }));
+
+      const { error: assetsError } = await supabase
+        .from("assets")
+        .insert(targetAssets);
+
+      if (assetsError) {
+        console.error("Error saving target portfolio:", assetsError);
+        alert(
+          "Błąd podczas zapisywania portfela modelowego. Spróbuj ponownie."
+        );
+        return;
+      }
+
+      // Update user settings with minimum cash level and target_portfolio_created flag
+      const { error: settingsError } = await supabase
+        .from("user_settings")
+        .update({
+          minimum_cash_level: minCashLevel,
+          target_portfolio_created: true,
+        })
+        .eq("user_id", user.id);
+
+      if (settingsError) {
+        console.error("Error updating user settings:", settingsError);
+      }
+
+      // Mark onboarding as complete
       const { error: profileError } = await supabase
         .from("profiles")
         .update({ onboarding_completed: true })
@@ -174,7 +237,7 @@ export function Onboarding() {
         navigate("/");
       }, 2000);
     } catch (error) {
-      console.error("Unexpected error during onboarding:", error);
+      console.error("Unexpected error during model portfolio setup:", error);
       alert("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
     } finally {
       setIsSubmitting(false);
@@ -188,8 +251,9 @@ export function Onboarding() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">🎉 Gratulacje!</CardTitle>
             <CardDescription className="text-lg mt-4">
-              Twoja poduszka finansowa została skonfigurowana. Za chwilę
-              zostaniesz przekierowany do strony głównej.
+              Twój portfel został skonfigurowany! Za chwilę zostaniesz
+              przekierowany do strony głównej, gdzie możesz zacząć dodawać swoje
+              aktywa.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -205,7 +269,7 @@ export function Onboarding() {
             Witaj w InvestBuddy!
           </h1>
           <p className="mt-2 text-gray-600">
-            Pomożemy Ci skonfigurować Twoją poduszką finansową
+            Pomożemy Ci skonfigurować Twój portfel inwestycyjny
           </p>
         </div>
 
@@ -256,19 +320,42 @@ export function Onboarding() {
               className={`flex items-center flex-shrink-0 ${
                 currentStep === "safety-cushion"
                   ? "text-blue-600"
-                  : "text-gray-400"
+                  : currentStep === "mifid" || currentStep === "basic-info"
+                  ? "text-gray-400"
+                  : "text-green-600"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                   currentStep === "safety-cushion"
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-300 text-gray-600"
+                    : currentStep === "mifid" || currentStep === "basic-info"
+                    ? "bg-gray-300 text-gray-600"
+                    : "bg-green-600 text-white"
                 }`}
               >
                 3
               </div>
               <span className="ml-2 font-medium text-sm">Poduszka</span>
+            </div>
+            <div className="w-8 h-1 bg-gray-300 flex-shrink-0"></div>
+            <div
+              className={`flex items-center flex-shrink-0 ${
+                currentStep === "model-portfolio"
+                  ? "text-blue-600"
+                  : "text-gray-400"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  currentStep === "model-portfolio"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-300 text-gray-600"
+                }`}
+              >
+                4
+              </div>
+              <span className="ml-2 font-medium text-sm">Portfel</span>
             </div>
           </div>
         </div>
@@ -291,6 +378,14 @@ export function Onboarding() {
             initialAllocation={cushionAllocation}
             onSubmit={handleSafetyCushionSubmit}
             onBack={() => setCurrentStep("basic-info")}
+            isSubmitting={isSubmitting}
+          />
+        )}
+
+        {currentStep === "model-portfolio" && (
+          <ModelPortfolioStep
+            onSubmit={handleModelPortfolioSubmit}
+            onBack={() => setCurrentStep("safety-cushion")}
             isSubmitting={isSubmitting}
           />
         )}

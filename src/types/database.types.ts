@@ -3,12 +3,15 @@ export type AssetCategory =
   | "deposits"
   | "savings_accounts"
   | "investment_funds"
+  | "foreign_stocks"
   | "ike_ikze"
   | "ppk"
   | "gold"
   | "currencies"
   | "cash"
   | "custom";
+
+export type PortfolioType = "safety_cushion" | "target" | "real";
 
 export type TransactionType = "buy" | "sell";
 
@@ -53,7 +56,9 @@ export interface Asset {
   category: AssetCategory;
   color: string;
   current_value: number;
+  target_allocation?: number;
   currency: string;
+  portfolio_type: PortfolioType;
   created_at: string;
   updated_at: string;
 }

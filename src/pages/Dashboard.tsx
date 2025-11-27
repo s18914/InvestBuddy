@@ -14,7 +14,7 @@ type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
 
 export default function Dashboard() {
   const { loading, hasCompleted, submitQuestionnaire } = useQuestionnaire();
-  const { assets, loading: assetsLoading } = useAssets();
+  const { assets, loading: assetsLoading } = useAssets("real");
   const [step, setStep] = useState<QuestionnaireStep>("welcome");
   const [result, setResult] = useState<QuestionnaireResult | null>(null);
   const [submitting, setSubmitting] = useState(false);

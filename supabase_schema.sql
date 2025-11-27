@@ -44,12 +44,20 @@ CREATE TYPE asset_category AS ENUM (
   'deposits',
   'savings_accounts',
   'investment_funds',
+  'foreign_stocks',
   'ike_ikze',
   'ppk',
   'gold',
   'currencies',
   'cash',
   'custom'
+);
+
+-- Portfolio types enum
+CREATE TYPE portfolio_type AS ENUM (
+  'safety_cushion',
+  'target',
+  'real'
 );
 
 -- Assets (actual holdings)
@@ -60,8 +68,9 @@ CREATE TABLE assets (
   category asset_category NOT NULL,
   color TEXT NOT NULL,
   current_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+  target_allocation DECIMAL(5,2) DEFAULT 0,
   currency TEXT DEFAULT 'PLN',
-  is_safety_cushion BOOLEAN DEFAULT FALSE,
+  portfolio_type portfolio_type DEFAULT 'real',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -135,6 +144,14 @@ CREATE TABLE currency_details (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Special asset details for foreign stocks
+CREATE TABLE foreign_stock_details (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  stock_name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Transactions (purchases and sales)
 CREATE TABLE transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -185,7 +202,7 @@ CREATE TABLE notifications (
 
 -- Indexes for performance
 CREATE INDEX idx_assets_user_id ON assets(user_id);
-CREATE INDEX idx_assets_safety_cushion ON assets(user_id, is_safety_cushion) WHERE is_safety_cushion = TRUE;
+CREATE INDEX idx_assets_portfolio_type ON assets(user_id, portfolio_type);
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_asset_id ON transactions(asset_id);
 CREATE INDEX idx_portfolio_snapshots_user_id ON portfolio_snapshots(user_id);

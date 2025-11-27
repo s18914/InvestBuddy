@@ -7,7 +7,9 @@ import {
   deleteAssetDetails,
 } from "@/services/assetDetailsService";
 
-export function useAssets() {
+type PortfolioType = "safety_cushion" | "target" | "real";
+
+export function useAssets(portfolioType?: PortfolioType) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,11 +20,13 @@ export function useAssets() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("assets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("name");
+      let query = supabase.from("assets").select("*").eq("user_id", user.id);
+
+      if (portfolioType) {
+        query = query.eq("portfolio_type", portfolioType);
+      }
+
+      const { data, error } = await query.order("name");
 
       if (error) throw error;
       setAssets(data || []);
