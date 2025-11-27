@@ -156,8 +156,24 @@ export default function AssetDetailsWizard({
         } else if (Array.isArray(data)) {
           for (let i = 0; i < data.length; i++) {
             const item = data[i];
+            let assetName = `${config.label} ${i + 1}`;
+
+            if (type === "bonds" && item.bond_type) {
+              assetName = item.bond_type;
+            } else if (type === "investment_funds" && item.fund_name) {
+              assetName = item.fund_name;
+            } else if (type === "deposits" && item.bank_name) {
+              assetName = `${config.label} - ${item.bank_name}`;
+            } else if (type === "savings_accounts" && item.account_name) {
+              assetName = item.account_name;
+            } else if (type === "currencies" && item.currency_code) {
+              assetName = item.currency_code;
+            } else if (item.name) {
+              assetName = item.name;
+            }
+
             assetsToSave.push({
-              name: item.name || `${config.label} ${i + 1}`,
+              name: assetName,
               category: type,
               color: item.color || config.color,
               current_value: item.current_value,

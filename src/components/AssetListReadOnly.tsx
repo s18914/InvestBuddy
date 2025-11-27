@@ -1,5 +1,6 @@
 import { Asset } from "@/types/database.types";
 import { TrendingUp } from "lucide-react";
+import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
 
 interface AssetListReadOnlyProps {
   assets: Asset[];
@@ -11,6 +12,25 @@ export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
     (sum, asset) => sum + asset.current_value,
     0
   );
+
+  const getCategoryLabel = (category: string) => {
+    const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
+      (a) => a.category === category
+    );
+    return config?.label || category;
+  };
+
+  const shouldShowCategory = (asset: Asset) => {
+    const multiItemCategories = [
+      "bonds",
+      "deposits",
+      "savings_accounts",
+      "investment_funds",
+      "currencies",
+      "custom",
+    ];
+    return multiItemCategories.includes(asset.category);
+  };
 
   if (assets.length === 0) {
     return (
@@ -55,9 +75,11 @@ export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{asset.name}</p>
-                    <p className="text-sm text-gray-500 capitalize">
-                      {asset.category.replace("_", " ")}
-                    </p>
+                    {shouldShowCategory(asset) && (
+                      <p className="text-sm text-gray-500">
+                        {getCategoryLabel(asset.category)}
+                      </p>
+                    )}
                   </div>
                 </div>
 

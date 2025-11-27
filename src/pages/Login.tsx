@@ -1,36 +1,54 @@
-import { useState, FormEvent } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import { LogIn, UserPlus } from 'lucide-react'
+import { useState, FormEvent } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { LogIn, UserPlus } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signIn, signUp } = useAuth()
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       if (isSignUp) {
-        await signUp(email, password)
-        setError('Check your email for confirmation link')
+        await signUp(email, password);
+        setError("Check your email for confirmation link");
       } else {
-        await signIn(email, password)
-        navigate('/')
+        await signIn(email, password);
+
+        // Check onboarding status
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("id", user.id)
+            .single();
+
+          if (profile?.onboarding_completed) {
+            navigate("/");
+          } else {
+            navigate("/onboarding");
+          }
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.message || "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -42,7 +60,10 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Email
             </label>
             <input
@@ -57,7 +78,10 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Password
             </label>
             <input
@@ -73,9 +97,13 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className={`p-3 rounded-lg text-sm ${
-              error.includes('email') ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'
-            }`}>
+            <div
+              className={`p-3 rounded-lg text-sm ${
+                error.includes("email")
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
               {error}
             </div>
           )}
@@ -86,7 +114,7 @@ export default function Login() {
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
           >
             {loading ? (
-              'Loading...'
+              "Loading..."
             ) : isSignUp ? (
               <>
                 <UserPlus className="h-5 w-5" />
@@ -104,15 +132,17 @@ export default function Login() {
         <div className="mt-6 text-center">
           <button
             onClick={() => {
-              setIsSignUp(!isSignUp)
-              setError('')
+              setIsSignUp(!isSignUp);
+              setError("");
             }}
             className="text-sm text-blue-600 hover:text-blue-700"
           >
-            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            {isSignUp
+              ? "Already have an account? Sign in"
+              : "Don't have an account? Sign up"}
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

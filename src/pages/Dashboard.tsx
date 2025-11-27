@@ -8,8 +8,6 @@ import {
 import WelcomeScreen from "@/components/questionnaire/WelcomeScreen";
 import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
 import ResultScreen from "@/components/questionnaire/ResultScreen";
-import AssetListReadOnly from "@/components/AssetListReadOnly";
-import PortfolioPieChart from "@/components/PortfolioPieChart";
 import PortfolioStackedChart from "@/components/PortfolioStackedChart";
 
 type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
@@ -44,49 +42,10 @@ export default function Dashboard() {
         <div className="space-y-6">
           <PortfolioStackedChart />
 
-          <h2>
-            Wykres z analizą portfela miesiąc po miesiącu i zaoszczędzonymi
-            kwotami
-          </h2>
-
-          {assets.length > 0 && (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <PortfolioPieChart assets={assets} />
-                </div>
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Podsumowanie
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600">Liczba aktywów</p>
-                      <p className="text-2xl font-bold text-blue-600">
-                        {assets.length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Łączna wartość</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {assets
-                          .reduce((sum, a) => sum + a.current_value, 0)
-                          .toFixed(2)}{" "}
-                        PLN
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <AssetListReadOnly assets={assets} />
-            </>
-          )}
-
           {assets.length === 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
               <p className="text-gray-700 mb-4">
-                Nie masz jeszcze żadnych aktywów.
+                Nie masz jeszcze żadnych aktywów w portfelu.
               </p>
               <a
                 href="/profile"

@@ -4,6 +4,7 @@
 CREATE TABLE profiles (
   id UUID REFERENCES auth.users PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  onboarding_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -60,6 +61,7 @@ CREATE TABLE assets (
   color TEXT NOT NULL,
   current_value DECIMAL(12,2) NOT NULL DEFAULT 0,
   currency TEXT DEFAULT 'PLN',
+  is_safety_cushion BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -164,6 +166,8 @@ CREATE TABLE user_settings (
   minimum_cash_level DECIMAL(12,2) DEFAULT 0,
   monthly_savings_amount DECIMAL(12,2) DEFAULT 0,
   default_allocation JSONB,
+  safety_cushion_target DECIMAL(12,2) DEFAULT 0,
+  safety_cushion_achieved BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -181,6 +185,7 @@ CREATE TABLE notifications (
 
 -- Indexes for performance
 CREATE INDEX idx_assets_user_id ON assets(user_id);
+CREATE INDEX idx_assets_safety_cushion ON assets(user_id, is_safety_cushion) WHERE is_safety_cushion = TRUE;
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_asset_id ON transactions(asset_id);
 CREATE INDEX idx_portfolio_snapshots_user_id ON portfolio_snapshots(user_id);
