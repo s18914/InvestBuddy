@@ -41,8 +41,6 @@ export function SafetyCushionStep({
     value: number[]
   ) => {
     const newValue = value[0];
-    const oldValue = allocation[field];
-    const diff = newValue - oldValue;
 
     // Adjust other fields proportionally
     if (field === "deposits") {
@@ -146,8 +144,11 @@ export function SafetyCushionStep({
                 i dostępność
               </li>
               <li>
-                • <strong>75% Obligacje indeksowane inflacją</strong> - ochrona
-                przed inflacją
+                •{" "}
+                <strong>
+                  75% Obligacje EDO (10-letnie indeksowane inflacją)
+                </strong>{" "}
+                - ochrona przed inflacją, zysk powyżej inflacji
               </li>
             </ul>
           </div>
@@ -214,12 +215,12 @@ export function SafetyCushionStep({
               />
             </div>
 
-            {/* Inflation Bonds */}
+            {/* Inflation Bonds - EDO */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label htmlFor="inflationBonds" className="text-base">
                   <span className="inline-block w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
-                  Obligacje indeksowane inflacją
+                  Obligacje EDO (10-letnie)
                 </Label>
                 <div className="text-right">
                   <p className="font-semibold">

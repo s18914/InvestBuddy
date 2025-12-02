@@ -13,12 +13,19 @@ import {
   ModelPortfolioAsset,
 } from "@/components/onboarding/ModelPortfolioStep";
 import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
+import ResultScreen from "@/components/questionnaire/ResultScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { QuestionnaireAnswers } from "@/services/questionnaireService";
+import {
+  QuestionnaireAnswers,
+  calculateProfile,
+  QuestionnaireResult,
+} from "@/services/questionnaireService";
+import { saveAssetDetails } from "@/services/assetDetailsService";
 
 type OnboardingStep =
   | "mifid"
+  | "mifid-summary"
   | "basic-info"
   | "safety-cushion"
   | "model-portfolio"
@@ -53,6 +60,9 @@ export function Onboarding() {
   const [mifidAnswers, setMifidAnswers] = useState<QuestionnaireAnswers | null>(
     null
   );
+  const [mifidResult, setMifidResult] = useState<QuestionnaireResult | null>(
+    null
+  );
 
   const targetCushionAmount = basicInfo.monthlyLivingCosts * 6;
 
@@ -61,6 +71,8 @@ export function Onboarding() {
 
     try {
       setMifidAnswers(answers);
+      const result = calculateProfile(answers);
+      setMifidResult(result);
 
       const { error } = await supabase.from("mifid_responses").insert({
         user_id: user.id,
@@ -70,8 +82,8 @@ export function Onboarding() {
         question_4_answer: answers.question_4,
         question_5_answer: answers.question_5,
         question_6_answer: answers.question_6,
-        total_score: 0,
-        investor_profile: "balanced",
+        total_score: result.totalScore,
+        investor_profile: result.profile,
       });
 
       if (error) {
@@ -80,11 +92,15 @@ export function Onboarding() {
         return;
       }
 
-      setCurrentStep("basic-info");
+      setCurrentStep("mifid-summary");
     } catch (error) {
       console.error("Unexpected error in MiFID:", error);
       alert("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
     }
+  };
+
+  const handleMiFIDSummaryComplete = () => {
+    setCurrentStep("basic-info");
   };
 
   const handleBasicInfoSubmit = (info: BasicInfo) => {
@@ -99,58 +115,105 @@ export function Onboarding() {
 
     setIsSubmitting(true);
     try {
-      // Save safety cushion portfolio to database
-      const cushionAssets = [];
+      const today = new Date().toISOString().split("T")[0];
 
+      // Save deposits asset and details
       if (allocation.deposits > 0) {
-        cushionAssets.push({
-          user_id: user.id,
-          name: "Lokaty",
+        const { data: depositAsset, error: depositError } = await supabase
+          .from("assets")
+          .insert({
+            user_id: user.id,
+            name: "Lokaty",
+            category: "deposits",
+            current_value: (targetCushionAmount * allocation.deposits) / 100,
+            target_allocation: allocation.deposits,
+            color: "#3b82f6",
+            portfolio_type: "safety_cushion",
+          })
+          .select()
+          .single();
+
+        if (depositError) {
+          console.error("Error saving deposit asset:", depositError);
+          throw depositError;
+        }
+
+        await saveAssetDetails({
+          assetId: depositAsset.id,
           category: "deposits",
-          current_value: (targetCushionAmount * allocation.deposits) / 100,
-          target_allocation: allocation.deposits,
-          color: "#3b82f6",
-          portfolio_type: "safety_cushion",
+          details: {
+            bank_name: "Nieokreślony",
+            interest_rate: 0,
+            start_date: today,
+            duration_months: 12,
+          },
         });
       }
 
+      // Save savings accounts asset and details
       if (allocation.savingsAccounts > 0) {
-        cushionAssets.push({
-          user_id: user.id,
-          name: "Konta oszczędnościowe",
+        const { data: savingsAsset, error: savingsError } = await supabase
+          .from("assets")
+          .insert({
+            user_id: user.id,
+            name: "Konta oszczędnościowe",
+            category: "savings_accounts",
+            current_value:
+              (targetCushionAmount * allocation.savingsAccounts) / 100,
+            target_allocation: allocation.savingsAccounts,
+            color: "#10b981",
+            portfolio_type: "safety_cushion",
+          })
+          .select()
+          .single();
+
+        if (savingsError) {
+          console.error("Error saving savings asset:", savingsError);
+          throw savingsError;
+        }
+
+        await saveAssetDetails({
+          assetId: savingsAsset.id,
           category: "savings_accounts",
-          current_value:
-            (targetCushionAmount * allocation.savingsAccounts) / 100,
-          target_allocation: allocation.savingsAccounts,
-          color: "#10b981",
-          portfolio_type: "safety_cushion",
+          details: {
+            account_name: "Konto oszczędnościowe",
+            interest_rate: 0,
+          },
         });
       }
 
+      // Save bonds asset and details (EDO - 10-year inflation-indexed)
       if (allocation.inflationBonds > 0) {
-        cushionAssets.push({
-          user_id: user.id,
-          name: "Obligacje indeksowane inflacją",
+        const { data: bondAsset, error: bondError } = await supabase
+          .from("assets")
+          .insert({
+            user_id: user.id,
+            name: "Obligacje EDO (10-letnie)",
+            category: "bonds",
+            current_value:
+              (targetCushionAmount * allocation.inflationBonds) / 100,
+            target_allocation: allocation.inflationBonds,
+            color: "#f59e0b",
+            portfolio_type: "safety_cushion",
+          })
+          .select()
+          .single();
+
+        if (bondError) {
+          console.error("Error saving bond asset:", bondError);
+          throw bondError;
+        }
+
+        await saveAssetDetails({
+          assetId: bondAsset.id,
           category: "bonds",
-          current_value:
-            (targetCushionAmount * allocation.inflationBonds) / 100,
-          target_allocation: allocation.inflationBonds,
-          color: "#f59e0b",
-          portfolio_type: "safety_cushion",
+          details: {
+            bond_type: "EDO",
+            interest_rate: 0,
+            inflation_rate: 0,
+            purchase_date: today,
+          },
         });
-      }
-
-      // Insert assets into database
-      const { error: assetsError } = await supabase
-        .from("assets")
-        .insert(cushionAssets);
-
-      if (assetsError) {
-        console.error("Error saving safety cushion:", assetsError);
-        alert(
-          "Błąd podczas zapisywania poduszki finansowej. Spróbuj ponownie."
-        );
-        return;
       }
 
       // Save user settings with cushion target amount
@@ -184,27 +247,55 @@ export function Onboarding() {
 
     setIsSubmitting(true);
     try {
-      // Save target portfolio assets
-      const targetAssets = assets.map((asset) => ({
-        user_id: user.id,
-        name: asset.name,
-        category: asset.category,
-        current_value: 0,
-        target_allocation: asset.allocation,
-        color: asset.color,
-        portfolio_type: "target",
-      }));
+      const today = new Date().toISOString().split("T")[0];
 
-      const { error: assetsError } = await supabase
-        .from("assets")
-        .insert(targetAssets);
+      // Save each asset with its details
+      for (const asset of assets) {
+        const { data: savedAsset, error: assetError } = await supabase
+          .from("assets")
+          .insert({
+            user_id: user.id,
+            name: asset.name,
+            category: asset.category,
+            current_value: 0,
+            target_allocation: asset.allocation,
+            color: asset.color,
+            portfolio_type: "target",
+          })
+          .select()
+          .single();
 
-      if (assetsError) {
-        console.error("Error saving target portfolio:", assetsError);
-        alert(
-          "Błąd podczas zapisywania portfela modelowego. Spróbuj ponownie."
-        );
-        return;
+        if (assetError) {
+          console.error("Error saving asset:", assetError);
+          throw assetError;
+        }
+
+        // Save asset details based on category
+        if (asset.category === "bonds" && asset.bondType) {
+          await saveAssetDetails({
+            assetId: savedAsset.id,
+            category: "bonds",
+            details: {
+              bond_type: asset.bondType,
+              interest_rate: 0,
+              inflation_rate:
+                asset.bondType === "EDO" || asset.bondType === "COI" ? 0 : null,
+              purchase_date: today,
+            },
+          });
+        } else if (
+          asset.category === "investment_funds" &&
+          asset.fundCategory
+        ) {
+          await saveAssetDetails({
+            assetId: savedAsset.id,
+            category: "investment_funds",
+            details: {
+              fund_name: asset.name,
+              fund_category: asset.fundCategory,
+            },
+          });
+        }
       }
 
       // Update user settings with minimum cash level and target_portfolio_created flag
@@ -297,7 +388,7 @@ export function Onboarding() {
               className={`flex items-center flex-shrink-0 ${
                 currentStep === "basic-info"
                   ? "text-blue-600"
-                  : currentStep === "mifid"
+                  : currentStep === "mifid" || currentStep === "mifid-summary"
                   ? "text-gray-400"
                   : "text-green-600"
               }`}
@@ -306,7 +397,7 @@ export function Onboarding() {
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                   currentStep === "basic-info"
                     ? "bg-blue-600 text-white"
-                    : currentStep === "mifid"
+                    : currentStep === "mifid" || currentStep === "mifid-summary"
                     ? "bg-gray-300 text-gray-600"
                     : "bg-green-600 text-white"
                 }`}
@@ -320,7 +411,9 @@ export function Onboarding() {
               className={`flex items-center flex-shrink-0 ${
                 currentStep === "safety-cushion"
                   ? "text-blue-600"
-                  : currentStep === "mifid" || currentStep === "basic-info"
+                  : currentStep === "mifid" ||
+                    currentStep === "mifid-summary" ||
+                    currentStep === "basic-info"
                   ? "text-gray-400"
                   : "text-green-600"
               }`}
@@ -329,7 +422,9 @@ export function Onboarding() {
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                   currentStep === "safety-cushion"
                     ? "bg-blue-600 text-white"
-                    : currentStep === "mifid" || currentStep === "basic-info"
+                    : currentStep === "mifid" ||
+                      currentStep === "mifid-summary" ||
+                      currentStep === "basic-info"
                     ? "bg-gray-300 text-gray-600"
                     : "bg-green-600 text-white"
                 }`}
@@ -364,6 +459,14 @@ export function Onboarding() {
           <QuestionnaireForm
             onComplete={handleMiFIDComplete}
             onBack={() => navigate("/login")}
+          />
+        )}
+
+        {currentStep === "mifid-summary" && mifidResult && (
+          <ResultScreen
+            profile={mifidResult.profile}
+            totalScore={mifidResult.totalScore}
+            onContinue={handleMiFIDSummaryComplete}
           />
         )}
 

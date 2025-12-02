@@ -206,7 +206,7 @@ export default function ResultScreen({
               onClick={onContinue}
               className="inline-flex items-center px-8 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
             >
-              Przejdź do aplikacji
+              Przejdź dalej
               <CheckCircle className="ml-2 w-5 h-5" />
             </button>
           </div>
