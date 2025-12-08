@@ -3,7 +3,7 @@ import PortfolioPieChart from "@/components/PortfolioPieChart";
 import AssetListReadOnly from "@/components/AssetListReadOnly";
 
 export default function PortfolioDetails() {
-  const { assets, loading } = useAssets();
+  const { assets, loading } = useAssets("real");
 
   if (loading) {
     return (
@@ -29,7 +29,7 @@ export default function PortfolioDetails() {
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <PortfolioPieChart assets={assets} />
+                <PortfolioPieChart assets={assets} groupByCategory={true} />
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">

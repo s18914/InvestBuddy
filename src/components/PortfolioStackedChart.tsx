@@ -12,7 +12,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp } from "lucide-react";
-import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
+import { PREDEFINED_ASSETS } from "@/types/assetConfig";
 
 interface SnapshotData {
   id: string;
@@ -40,16 +40,12 @@ export default function PortfolioStackedChart() {
   }, [user]);
 
   const getCategoryColor = (category: string): string => {
-    const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
-      (a) => a.category === category
-    );
+    const config = PREDEFINED_ASSETS.find((a) => a.category === category);
     return config?.color || "#939597";
   };
 
   const getCategoryLabel = (category: string): string => {
-    const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
-      (a) => a.category === category
-    );
+    const config = PREDEFINED_ASSETS.find((a) => a.category === category);
     return config?.label || category;
   };
 

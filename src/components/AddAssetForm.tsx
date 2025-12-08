@@ -1,48 +1,55 @@
-import { useState, FormEvent } from 'react'
-import { Plus, X } from 'lucide-react'
-import { AssetCategory } from '@/types/database.types'
+import { useState, FormEvent } from "react";
+import { Plus, X } from "lucide-react";
+import { AssetCategory } from "@/types/database.types";
 
 interface AddAssetFormProps {
   onAdd: (asset: {
-    name: string
-    category: AssetCategory
-    color: string
-    current_value: number
-    currency: string
-  }) => Promise<void>
+    name: string;
+    category: AssetCategory;
+    color: string;
+    current_value: number;
+    currency: string;
+  }) => Promise<void>;
 }
 
 const ASSET_CATEGORIES: { value: AssetCategory; label: string }[] = [
-  { value: 'bonds', label: 'Obligacje' },
-  { value: 'deposits', label: 'Lokaty' },
-  { value: 'savings_accounts', label: 'Konta oszczędnościowe' },
-  { value: 'investment_funds', label: 'Fundusze inwestycyjne' },
-  { value: 'ike_ikze', label: 'IKE/IKZE' },
-  { value: 'ppk', label: 'PPK' },
-  { value: 'gold', label: 'Złoto' },
-  { value: 'currencies', label: 'Waluty' },
-  { value: 'cash', label: 'Gotówka' },
-  { value: 'custom', label: 'Własne' },
-]
+  { value: "bonds", label: "Obligacje" },
+  { value: "deposits", label: "Lokaty" },
+  { value: "savings_accounts", label: "Konta oszczędnościowe" },
+  { value: "investment_funds", label: "Fundusze inwestycyjne" },
+  { value: "ike_ikze", label: "IKE/IKZE" },
+  { value: "ppk", label: "PPK" },
+  { value: "gold", label: "Złoto" },
+  { value: "currencies", label: "Waluty" },
+  { value: "cash", label: "Gotówka" },
+];
 
 const PRESET_COLORS = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-  '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
-]
+  "#3B82F6",
+  "#EF4444",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#F97316",
+  "#6366F1",
+  "#84CC16",
+];
 
 export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState<AssetCategory>('custom')
-  const [color, setColor] = useState(PRESET_COLORS[0])
-  const [currentValue, setCurrentValue] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [isOpen, setIsOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<AssetCategory>("bonds");
+  const [color, setColor] = useState(PRESET_COLORS[0]);
+  const [currentValue, setCurrentValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       await onAdd({
@@ -50,20 +57,20 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
         category,
         color,
         current_value: parseFloat(currentValue),
-        currency: 'PLN'
-      })
+        currency: "PLN",
+      });
 
-      setName('')
-      setCategory('custom')
-      setColor(PRESET_COLORS[0])
-      setCurrentValue('')
-      setIsOpen(false)
+      setName("");
+      setCategory("bonds");
+      setColor(PRESET_COLORS[0]);
+      setCurrentValue("");
+      setIsOpen(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to add asset')
+      setError(err.message || "Failed to add asset");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (!isOpen) {
     return (
@@ -74,7 +81,7 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
         <Plus className="h-5 w-5 mr-2" />
         Add Asset
       </button>
-    )
+    );
   }
 
   return (
@@ -113,7 +120,7 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
             onChange={(e) => setCategory(e.target.value as AssetCategory)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {ASSET_CATEGORIES.map(cat => (
+            {ASSET_CATEGORIES.map((cat) => (
               <option key={cat.value} value={cat.value}>
                 {cat.label}
               </option>
@@ -142,13 +149,13 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
             Color
           </label>
           <div className="flex gap-2 flex-wrap">
-            {PRESET_COLORS.map(presetColor => (
+            {PRESET_COLORS.map((presetColor) => (
               <button
                 key={presetColor}
                 type="button"
                 onClick={() => setColor(presetColor)}
                 className={`w-10 h-10 rounded-lg border-2 ${
-                  color === presetColor ? 'border-gray-900' : 'border-gray-300'
+                  color === presetColor ? "border-gray-900" : "border-gray-300"
                 }`}
                 style={{ backgroundColor: presetColor }}
               />
@@ -168,7 +175,7 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
             disabled={loading}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
           >
-            {loading ? 'Adding...' : 'Add Asset'}
+            {loading ? "Adding..." : "Add Asset"}
           </button>
           <button
             type="button"
@@ -180,5 +187,5 @@ export default function AddAssetForm({ onAdd }: AddAssetFormProps) {
         </div>
       </form>
     </div>
-  )
+  );
 }

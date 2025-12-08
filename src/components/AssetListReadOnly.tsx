@@ -1,24 +1,35 @@
 import { Asset } from "@/types/database.types";
 import { TrendingUp } from "lucide-react";
-import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
+import { getCategoryColor, getCategoryLabel } from "@/types/assetConfig";
 
 interface AssetListReadOnlyProps {
   assets: Asset[];
 }
 
+const CATEGORY_ORDER: Record<string, number> = {
+  bonds: 1,
+  deposits: 2,
+  savings_accounts: 3,
+  investment_funds: 4,
+  foreign_stocks: 5,
+  ike_ikze: 6,
+  ppk: 7,
+  gold: 8,
+  currencies: 9,
+  cash: 10,
+};
+
 export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
-  const sortedAssets = [...assets].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedAssets = [...assets].sort((a, b) => {
+    const orderA = CATEGORY_ORDER[a.category] ?? 99;
+    const orderB = CATEGORY_ORDER[b.category] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.name.localeCompare(b.name);
+  });
   const totalValue = sortedAssets.reduce(
     (sum, asset) => sum + asset.current_value,
     0
   );
-
-  const getCategoryLabel = (category: string) => {
-    const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
-      (a) => a.category === category
-    );
-    return config?.label || category;
-  };
 
   const shouldShowCategory = (asset: Asset) => {
     const multiItemCategories = [
@@ -27,7 +38,6 @@ export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
       "savings_accounts",
       "investment_funds",
       "currencies",
-      "custom",
     ];
     return multiItemCategories.includes(asset.category);
   };
@@ -71,7 +81,9 @@ export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
                 <div className="flex items-center gap-3 flex-1">
                   <div
                     className="w-4 h-4 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: asset.color }}
+                    style={{
+                      backgroundColor: getCategoryColor(asset.category),
+                    }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{asset.name}</p>
@@ -95,7 +107,7 @@ export default function AssetListReadOnly({ assets }: AssetListReadOnlyProps) {
                 <div
                   className="h-2 rounded-full transition-all"
                   style={{
-                    backgroundColor: asset.color,
+                    backgroundColor: getCategoryColor(asset.category),
                     width: `${percentage}%`,
                   }}
                 />

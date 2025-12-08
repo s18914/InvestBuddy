@@ -15,6 +15,7 @@ import {
 import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
 import ResultScreen from "@/components/questionnaire/ResultScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import { supabase } from "@/lib/supabase";
 import {
   QuestionnaireAnswers,
@@ -22,6 +23,7 @@ import {
   QuestionnaireResult,
 } from "@/services/questionnaireService";
 import { saveAssetDetails } from "@/services/assetDetailsService";
+import TestModeToggle from "@/components/TestModeToggle";
 
 type OnboardingStep =
   | "mifid"
@@ -45,6 +47,7 @@ interface SafetyCushionAllocation {
 export function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { getCurrentDate } = useTestMode();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("mifid");
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     age: 0,
@@ -115,7 +118,7 @@ export function Onboarding() {
 
     setIsSubmitting(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getCurrentDate();
 
       // Save deposits asset and details
       if (allocation.deposits > 0) {
@@ -129,6 +132,7 @@ export function Onboarding() {
             target_allocation: allocation.deposits,
             color: "#3b82f6",
             portfolio_type: "safety_cushion",
+            created_at: today,
           })
           .select()
           .single();
@@ -163,6 +167,7 @@ export function Onboarding() {
             target_allocation: allocation.savingsAccounts,
             color: "#10b981",
             portfolio_type: "safety_cushion",
+            created_at: today,
           })
           .select()
           .single();
@@ -195,6 +200,7 @@ export function Onboarding() {
             target_allocation: allocation.inflationBonds,
             color: "#f59e0b",
             portfolio_type: "safety_cushion",
+            created_at: today,
           })
           .select()
           .single();
@@ -239,15 +245,12 @@ export function Onboarding() {
     }
   };
 
-  const handleModelPortfolioSubmit = async (
-    assets: ModelPortfolioAsset[],
-    minCashLevel: number
-  ) => {
+  const handleModelPortfolioSubmit = async (assets: ModelPortfolioAsset[]) => {
     if (!user) return;
 
     setIsSubmitting(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getCurrentDate();
 
       // Save each asset with its details
       for (const asset of assets) {
@@ -261,6 +264,7 @@ export function Onboarding() {
             target_allocation: asset.allocation,
             color: asset.color,
             portfolio_type: "target",
+            created_at: today,
           })
           .select()
           .single();
@@ -296,19 +300,6 @@ export function Onboarding() {
             },
           });
         }
-      }
-
-      // Update user settings with minimum cash level and target_portfolio_created flag
-      const { error: settingsError } = await supabase
-        .from("user_settings")
-        .update({
-          minimum_cash_level: minCashLevel,
-          target_portfolio_created: true,
-        })
-        .eq("user_id", user.id);
-
-      if (settingsError) {
-        console.error("Error updating user settings:", settingsError);
       }
 
       // Mark onboarding as complete
@@ -354,6 +345,7 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <TestModeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900">

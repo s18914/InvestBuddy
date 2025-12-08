@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Plus, CheckCircle } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
 import { AssetCategory } from "@/types/database.types";
@@ -8,6 +8,7 @@ import PortfolioUpdateForm from "@/components/PortfolioUpdateForm";
 import { AssetWithDetails } from "@/types/assetForms.types";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 
 interface MonthSnapshot {
   id: string;
@@ -26,26 +27,77 @@ type Step =
 export default function PortfolioUpdate() {
   const { assets, addAsset, refetch } = useAssets();
   const { user } = useAuth();
+  const { getCurrentDate } = useTestMode();
   const [step, setStep] = useState<Step>("month-select");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
   const [snapshots, setSnapshots] = useState<MonthSnapshot[]>([]);
+  const [portfolioStartDate, setPortfolioStartDate] = useState<Date | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const generateMonthOptions = () => {
-    const months = [];
-    const today = new Date();
+  // Load the earliest asset creation date to determine portfolio start
+  useEffect(() => {
+    async function loadPortfolioStartDate() {
+      if (!user) return;
 
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthStr = date.toISOString().slice(0, 7);
-      const displayName = date.toLocaleDateString("pl-PL", {
+      const { data, error } = await supabase
+        .from("assets")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .eq("portfolio_type", "real")
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setPortfolioStartDate(new Date(data[0].created_at));
+      }
+    }
+
+    loadPortfolioStartDate();
+  }, [user]);
+
+  const generateMonthOptions = () => {
+    const months: { value: string; label: string }[] = [];
+
+    if (!portfolioStartDate) return months;
+
+    // Current date (or test mode date)
+    const currentDateStr = getCurrentDate();
+    const currentDate = new Date(currentDateStr);
+
+    // Start from the month AFTER portfolio creation
+    const startMonth = new Date(
+      portfolioStartDate.getFullYear(),
+      portfolioStartDate.getMonth() + 1,
+      1
+    );
+
+    // End at current month (but don't include current month if we're still in it)
+    const endMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1
+    );
+
+    // If start month is after or equal to end month, no updates available yet
+    if (startMonth >= endMonth) {
+      return months;
+    }
+
+    // Generate months from start to end (most recent first)
+    const iterDate = new Date(endMonth);
+    while (iterDate >= startMonth) {
+      const monthStr = iterDate.toISOString().slice(0, 7);
+      const displayName = iterDate.toLocaleDateString("pl-PL", {
         year: "numeric",
         month: "long",
       });
       months.push({ value: monthStr, label: displayName });
+      iterDate.setMonth(iterDate.getMonth() - 1);
     }
 
     return months;
@@ -186,9 +238,9 @@ export default function PortfolioUpdate() {
           {
             name: asset.name,
             category: asset.category,
-            color: asset.color,
             current_value: asset.current_value,
             currency: asset.currency,
+            portfolio_type: "real",
           },
           asset.details
         );
@@ -240,45 +292,59 @@ export default function PortfolioUpdate() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {monthOptions.map((month) => {
-              const completed = isMonthCompleted(month.value);
+          {monthOptions.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Brak dostępnych miesięcy do aktualizacji
+              </h3>
+              <p className="text-gray-600 text-sm max-w-md mx-auto">
+                {portfolioStartDate
+                  ? "Aktualizacje będą dostępne od następnego miesiąca po utworzeniu portfela."
+                  : "Najpierw dodaj aktywa do swojego portfela."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {monthOptions.map((month) => {
+                const completed = isMonthCompleted(month.value);
 
-              return (
-                <button
-                  key={month.value}
-                  onClick={() => handleMonthSelect(month.value)}
-                  className={`relative p-4 border-2 rounded-lg text-left transition-all hover:shadow-md ${
-                    completed
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200 hover:border-blue-500"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <Calendar
-                        className={`h-5 w-5 ${
-                          completed ? "text-green-600" : "text-gray-400"
-                        }`}
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {month.label}
-                        </p>
-                        {completed && (
-                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Zaktualizowano
+                return (
+                  <button
+                    key={month.value}
+                    onClick={() => handleMonthSelect(month.value)}
+                    className={`relative p-4 border-2 rounded-lg text-left transition-all hover:shadow-md ${
+                      completed
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 hover:border-blue-500"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Calendar
+                          className={`h-5 w-5 ${
+                            completed ? "text-green-600" : "text-gray-400"
+                          }`}
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {month.label}
                           </p>
-                        )}
+                          {completed && (
+                            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Zaktualizowano
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <Plus className="h-5 w-5 text-gray-400" />
                     </div>
-                    <Plus className="h-5 w-5 text-gray-400" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

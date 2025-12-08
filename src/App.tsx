@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { TestModeProvider } from "./contexts/TestModeContext";
 import { useProfile } from "./hooks/useProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OnboardingGuard from "./components/OnboardingGuard";
@@ -7,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import PortfolioUpdate from "./pages/PortfolioUpdate";
 import PortfolioDetails from "./pages/PortfolioDetails";
+import Assets from "./pages/Assets";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import { Onboarding } from "./pages/Onboarding";
@@ -28,6 +30,7 @@ function AppContent() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/details" element={<PortfolioDetails />} />
+                  <Route path="/assets" element={<Assets />} />
                   <Route path="/update" element={<PortfolioUpdate />} />
                 </Routes>
               </Layout>
@@ -43,7 +46,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <TestModeProvider>
+          <AppContent />
+        </TestModeProvider>
       </AuthProvider>
     </Router>
   );

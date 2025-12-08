@@ -18,6 +18,17 @@ export type FundCategory =
   | "absolute_return"
   | "bonds"
   | "other";
+export type IkeIkzeType = "IKE" | "IKZE";
+export type CurrencyType =
+  | "USD"
+  | "EUR"
+  | "GBP"
+  | "CHF"
+  | "JPY"
+  | "NOK"
+  | "SEK"
+  | "AUD"
+  | "CAD";
 
 export interface ModelPortfolioAsset {
   id: string;
@@ -27,10 +38,12 @@ export interface ModelPortfolioAsset {
   color: string;
   bondType?: BondType;
   fundCategory?: FundCategory;
+  ikeIkzeType?: IkeIkzeType;
+  currencyType?: CurrencyType;
 }
 
 interface ModelPortfolioStepProps {
-  onSubmit: (assets: ModelPortfolioAsset[], minCashLevel: number) => void;
+  onSubmit: (assets: ModelPortfolioAsset[]) => void;
   onBack: () => void;
   isSubmitting: boolean;
 }
@@ -101,6 +114,35 @@ const FUND_CATEGORIES: {
   { value: "other", label: "Inne", description: "Pozostałe strategie" },
 ];
 
+const IKE_IKZE_TYPES: {
+  value: IkeIkzeType;
+  label: string;
+  description: string;
+}[] = [
+  { value: "IKE", label: "IKE", description: "Indywidualne Konto Emerytalne" },
+  {
+    value: "IKZE",
+    label: "IKZE",
+    description: "Indywidualne Konto Zabezpieczenia Emerytalnego",
+  },
+];
+
+const CURRENCY_TYPES: {
+  value: CurrencyType;
+  label: string;
+  description: string;
+}[] = [
+  { value: "USD", label: "USD", description: "Dolar amerykański" },
+  { value: "EUR", label: "EUR", description: "Euro" },
+  { value: "GBP", label: "GBP", description: "Funt brytyjski" },
+  { value: "CHF", label: "CHF", description: "Frank szwajcarski" },
+  { value: "JPY", label: "JPY", description: "Jen japoński" },
+  { value: "NOK", label: "NOK", description: "Korona norweska" },
+  { value: "SEK", label: "SEK", description: "Korona szwedzka" },
+  { value: "AUD", label: "AUD", description: "Dolar australijski" },
+  { value: "CAD", label: "CAD", description: "Dolar kanadyjski" },
+];
+
 const CATEGORY_COLORS: Record<string, string> = {
   bonds: "#f59e0b",
   foreign_stocks: "#10b981",
@@ -128,13 +170,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 const AVAILABLE_CATEGORIES = [
   { category: "bonds", allowsMultiple: true },
   { category: "investment_funds", allowsMultiple: true },
+  { category: "ike_ikze", allowsMultiple: true },
+  { category: "currencies", allowsMultiple: true },
   { category: "foreign_stocks", allowsMultiple: false },
   { category: "gold", allowsMultiple: false },
   { category: "deposits", allowsMultiple: false },
   { category: "savings_accounts", allowsMultiple: false },
-  { category: "ike_ikze", allowsMultiple: false },
   { category: "ppk", allowsMultiple: false },
-  { category: "currencies", allowsMultiple: false },
 ];
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -147,6 +189,15 @@ const getBondName = (bondType: BondType) => {
 const getFundName = (fundCategory: FundCategory) => {
   const fund = FUND_CATEGORIES.find((f) => f.value === fundCategory);
   return `Fundusze ${fund?.label.toLowerCase() || fundCategory}`;
+};
+
+const getIkeIkzeName = (ikeIkzeType: IkeIkzeType) => {
+  return ikeIkzeType;
+};
+
+const getCurrencyName = (currencyType: CurrencyType) => {
+  const currency = CURRENCY_TYPES.find((c) => c.value === currencyType);
+  return `Waluta ${currency?.label || currencyType}`;
 };
 
 const DEFAULT_PORTFOLIO: ModelPortfolioAsset[] = [
@@ -189,7 +240,6 @@ export function ModelPortfolioStep({
 }: ModelPortfolioStepProps) {
   const [assets, setAssets] =
     useState<ModelPortfolioAsset[]>(DEFAULT_PORTFOLIO);
-  const [minCashLevel, setMinCashLevel] = useState(5);
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
 
@@ -209,6 +259,18 @@ export function ModelPortfolioStep({
     return assets
       .filter((a) => a.category === "investment_funds" && a.fundCategory)
       .map((a) => a.fundCategory as FundCategory);
+  };
+
+  const getUsedIkeIkzeTypes = (): IkeIkzeType[] => {
+    return assets
+      .filter((a) => a.category === "ike_ikze" && a.ikeIkzeType)
+      .map((a) => a.ikeIkzeType as IkeIkzeType);
+  };
+
+  const getUsedCurrencyTypes = (): CurrencyType[] => {
+    return assets
+      .filter((a) => a.category === "currencies" && a.currencyType)
+      .map((a) => a.currencyType as CurrencyType);
   };
 
   const handleSliderChange = (id: string, value: number[]) => {
@@ -265,6 +327,36 @@ export function ModelPortfolioStep({
     );
   };
 
+  const handleIkeIkzeTypeChange = (id: string, ikeIkzeType: IkeIkzeType) => {
+    setAssets(
+      assets.map((asset) => {
+        if (asset.id === id) {
+          return {
+            ...asset,
+            ikeIkzeType,
+            name: getIkeIkzeName(ikeIkzeType),
+          };
+        }
+        return asset;
+      })
+    );
+  };
+
+  const handleCurrencyTypeChange = (id: string, currencyType: CurrencyType) => {
+    setAssets(
+      assets.map((asset) => {
+        if (asset.id === id) {
+          return {
+            ...asset,
+            currencyType,
+            name: getCurrencyName(currencyType),
+          };
+        }
+        return asset;
+      })
+    );
+  };
+
   const handleAddAsset = (category: string) => {
     const categoryConfig = AVAILABLE_CATEGORIES.find(
       (c) => c.category === category
@@ -313,6 +405,40 @@ export function ModelPortfolioStep({
         allocation: 10,
         color,
         fundCategory: availableCategory.value,
+      };
+    } else if (category === "ike_ikze") {
+      const usedTypes = getUsedIkeIkzeTypes();
+      const availableType = IKE_IKZE_TYPES.find(
+        (t) => !usedTypes.includes(t.value)
+      );
+      if (!availableType) {
+        alert("Oba konta (IKE i IKZE) zostały już dodane");
+        return;
+      }
+      newAsset = {
+        id: generateId(),
+        name: getIkeIkzeName(availableType.value),
+        category: "ike_ikze",
+        allocation: 10,
+        color,
+        ikeIkzeType: availableType.value,
+      };
+    } else if (category === "currencies") {
+      const usedCurrencies = getUsedCurrencyTypes();
+      const availableCurrency = CURRENCY_TYPES.find(
+        (c) => !usedCurrencies.includes(c.value)
+      );
+      if (!availableCurrency) {
+        alert("Wszystkie waluty zostały już dodane");
+        return;
+      }
+      newAsset = {
+        id: generateId(),
+        name: getCurrencyName(availableCurrency.value),
+        category: "currencies",
+        allocation: 10,
+        color,
+        currencyType: availableCurrency.value,
       };
     } else {
       newAsset = {
@@ -368,7 +494,7 @@ export function ModelPortfolioStep({
       alert("Suma alokacji musi wynosić 100%");
       return;
     }
-    onSubmit(assets, minCashLevel);
+    onSubmit(assets);
   };
 
   const canAddCategory = (category: string) => {
@@ -386,6 +512,12 @@ export function ModelPortfolioStep({
     }
     if (category === "investment_funds") {
       return getUsedFundCategories().length < FUND_CATEGORIES.length;
+    }
+    if (category === "ike_ikze") {
+      return getUsedIkeIkzeTypes().length < IKE_IKZE_TYPES.length;
+    }
+    if (category === "currencies") {
+      return getUsedCurrencyTypes().length < CURRENCY_TYPES.length;
     }
 
     return true;
@@ -416,27 +548,6 @@ export function ModelPortfolioStep({
             <p className="text-sm text-blue-800">
               <strong>Domyślna propozycja:</strong> 40% obligacje EDO, 30% akcje
               zagraniczne, 20% fundusze mieszane, 10% złoto
-            </p>
-          </div>
-
-          <div className="space-y-3 bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="minCash" className="text-base font-medium">
-                Minimalny poziom gotówki
-              </Label>
-              <span className="font-semibold text-lg">{minCashLevel}%</span>
-            </div>
-            <Slider
-              id="minCash"
-              min={0}
-              max={20}
-              step={1}
-              value={[minCashLevel]}
-              onValueChange={(value) => setMinCashLevel(value[0])}
-              className="w-full"
-            />
-            <p className="text-sm text-gray-600">
-              System będzie ostrzegać, gdy gotówka spadnie poniżej tego poziomu
             </p>
           </div>
 
@@ -481,7 +592,9 @@ export function ModelPortfolioStep({
                       />
                       {CATEGORY_LABELS[category]}
                       {(category === "bonds" ||
-                        category === "investment_funds") && (
+                        category === "investment_funds" ||
+                        category === "ike_ikze" ||
+                        category === "currencies") && (
                         <span className="ml-1 text-xs text-gray-500">+</span>
                       )}
                     </Button>
@@ -504,7 +617,9 @@ export function ModelPortfolioStep({
                       />
                       <span className="font-medium">{asset.name}</span>
                       {(asset.category === "bonds" ||
-                        asset.category === "investment_funds") && (
+                        asset.category === "investment_funds" ||
+                        asset.category === "ike_ikze" ||
+                        asset.category === "currencies") && (
                         <button
                           type="button"
                           onClick={() =>
@@ -623,6 +738,90 @@ export function ModelPortfolioStep({
                               <div className="font-medium">{fundCat.label}</div>
                               <div className="text-xs text-gray-500">
                                 {fundCat.description}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                {expandedAsset === asset.id &&
+                  asset.category === "ike_ikze" && (
+                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-pink-50">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Typ konta:
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {IKE_IKZE_TYPES.map((ikeType) => {
+                          const isUsed = getUsedIkeIkzeTypes().includes(
+                            ikeType.value
+                          );
+                          const isCurrent = asset.ikeIkzeType === ikeType.value;
+                          return (
+                            <button
+                              key={ikeType.value}
+                              type="button"
+                              disabled={isUsed && !isCurrent}
+                              onClick={() =>
+                                handleIkeIkzeTypeChange(asset.id, ikeType.value)
+                              }
+                              className={`text-left p-2 rounded border text-sm transition-colors ${
+                                isCurrent
+                                  ? "border-pink-500 bg-pink-100 text-pink-900"
+                                  : isUsed
+                                  ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "border-gray-200 hover:border-pink-300 hover:bg-pink-50"
+                              }`}
+                            >
+                              <div className="font-medium">{ikeType.label}</div>
+                              <div className="text-xs text-gray-500">
+                                {ikeType.description}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                {expandedAsset === asset.id &&
+                  asset.category === "currencies" && (
+                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-teal-50">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Waluta:
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {CURRENCY_TYPES.map((currType) => {
+                          const isUsed = getUsedCurrencyTypes().includes(
+                            currType.value
+                          );
+                          const isCurrent =
+                            asset.currencyType === currType.value;
+                          return (
+                            <button
+                              key={currType.value}
+                              type="button"
+                              disabled={isUsed && !isCurrent}
+                              onClick={() =>
+                                handleCurrencyTypeChange(
+                                  asset.id,
+                                  currType.value
+                                )
+                              }
+                              className={`text-left p-2 rounded border text-sm transition-colors ${
+                                isCurrent
+                                  ? "border-teal-500 bg-teal-100 text-teal-900"
+                                  : isUsed
+                                  ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "border-gray-200 hover:border-teal-300 hover:bg-teal-50"
+                              }`}
+                            >
+                              <div className="font-medium">
+                                {currType.label}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {currType.description}
                               </div>
                             </button>
                           );

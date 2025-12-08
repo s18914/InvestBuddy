@@ -1,12 +1,12 @@
 -- InvestBuddy Database Schema for Supabase
+-- Version: 2.0 (Test Mode + Historical Data Support)
 
 -- Users table (extends Supabase auth.users)
 CREATE TABLE profiles (
   id UUID REFERENCES auth.users PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   onboarding_completed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- MiFID questionnaire responses
@@ -34,7 +34,6 @@ CREATE TABLE target_portfolio (
   target_percentage DECIMAL(5,2) NOT NULL CHECK (target_percentage >= 0 AND target_percentage <= 100),
   color TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, asset_name)
 );
 
@@ -49,8 +48,7 @@ CREATE TYPE asset_category AS ENUM (
   'ppk',
   'gold',
   'currencies',
-  'cash',
-  'custom'
+  'cash'
 );
 
 -- Portfolio types enum
@@ -61,6 +59,7 @@ CREATE TYPE portfolio_type AS ENUM (
 );
 
 -- Assets (actual holdings)
+-- Note: created_at has no default - must be provided by frontend (for test mode support)
 CREATE TABLE assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -71,8 +70,19 @@ CREATE TABLE assets (
   target_allocation DECIMAL(5,2) DEFAULT 0,
   currency TEXT DEFAULT 'PLN',
   portfolio_type portfolio_type DEFAULT 'real',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+-- Historical valuations for each asset
+-- This table stores the value history of each asset over time
+CREATE TABLE asset_valuations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
+  valuation_date DATE NOT NULL,
+  value DECIMAL(12,2) NOT NULL,
+  source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'auto', 'import')),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  UNIQUE(asset_id, valuation_date)
 );
 
 -- Special asset details for bonds
@@ -166,26 +176,29 @@ CREATE TABLE transactions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Monthly portfolio snapshots
+-- Monthly portfolio snapshots (aggregated data for charts)
+-- Stores category-level breakdown for fast portfolio chart rendering
 CREATE TABLE portfolio_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   snapshot_date DATE NOT NULL,
   total_value DECIMAL(12,2) NOT NULL,
-  asset_breakdown JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- Category breakdown: {"bonds": 10000, "deposits": 5000, ...}
+  category_breakdown JSONB NOT NULL,
+  -- Optional: detailed asset breakdown for drill-down
+  asset_breakdown JSONB,
+  asset_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   UNIQUE(user_id, snapshot_date)
 );
 
 -- User settings
 CREATE TABLE user_settings (
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
-  minimum_cash_level DECIMAL(12,2) DEFAULT 0,
   monthly_savings_amount DECIMAL(12,2) DEFAULT 0,
   default_allocation JSONB,
   safety_cushion_target DECIMAL(12,2) DEFAULT 0,
-  safety_cushion_achieved BOOLEAN DEFAULT FALSE,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  safety_cushion_achieved BOOLEAN DEFAULT FALSE
 );
 
 -- Alerts/Notifications
@@ -203,9 +216,14 @@ CREATE TABLE notifications (
 -- Indexes for performance
 CREATE INDEX idx_assets_user_id ON assets(user_id);
 CREATE INDEX idx_assets_portfolio_type ON assets(user_id, portfolio_type);
+CREATE INDEX idx_assets_created_at ON assets(user_id, created_at);
+CREATE INDEX idx_asset_valuations_asset_id ON asset_valuations(asset_id);
+CREATE INDEX idx_asset_valuations_date ON asset_valuations(asset_id, valuation_date);
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_asset_id ON transactions(asset_id);
+CREATE INDEX idx_transactions_date ON transactions(asset_id, transaction_date);
 CREATE INDEX idx_portfolio_snapshots_user_id ON portfolio_snapshots(user_id);
+CREATE INDEX idx_portfolio_snapshots_date ON portfolio_snapshots(user_id, snapshot_date);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read) WHERE is_read = FALSE;
 
@@ -221,6 +239,8 @@ ALTER TABLE retirement_account_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fund_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gold_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE currency_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE foreign_stock_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE asset_valuations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
@@ -234,6 +254,7 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 CREATE POLICY "Users can view own mifid" ON mifid_responses FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own mifid" ON mifid_responses FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own mifid" ON mifid_responses FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own mifid" ON mifid_responses FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can manage own target portfolio" ON target_portfolio FOR ALL USING (auth.uid() = user_id);
 
@@ -261,6 +282,9 @@ CREATE POLICY "Users can manage own gold details" ON gold_details FOR ALL
 CREATE POLICY "Users can manage own currency details" ON currency_details FOR ALL 
   USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = currency_details.asset_id AND assets.user_id = auth.uid()));
 
+CREATE POLICY "Users can manage own asset valuations" ON asset_valuations FOR ALL 
+  USING (EXISTS (SELECT 1 FROM assets WHERE assets.id = asset_valuations.asset_id AND assets.user_id = auth.uid()));
+
 CREATE POLICY "Users can manage own transactions" ON transactions FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can manage own snapshots" ON portfolio_snapshots FOR ALL USING (auth.uid() = user_id);
@@ -269,24 +293,68 @@ CREATE POLICY "Users can manage own settings" ON user_settings FOR ALL USING (au
 
 CREATE POLICY "Users can manage own notifications" ON notifications FOR ALL USING (auth.uid() = user_id);
 
--- Function to automatically update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- Helper function to create portfolio snapshot from current asset values
+-- Call this monthly or when user updates portfolio
+CREATE OR REPLACE FUNCTION create_portfolio_snapshot(p_user_id UUID, p_date DATE, p_created_at TIMESTAMP WITH TIME ZONE)
+RETURNS UUID AS $$
+DECLARE
+  v_snapshot_id UUID;
+  v_total DECIMAL(12,2);
+  v_category_breakdown JSONB;
+  v_asset_breakdown JSONB;
+  v_asset_count INTEGER;
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+  -- Calculate totals by category
+  SELECT 
+    COALESCE(SUM(current_value), 0),
+    COALESCE(jsonb_object_agg(category, cat_total), '{}'::jsonb),
+    COUNT(*)
+  INTO v_total, v_category_breakdown, v_asset_count
+  FROM (
+    SELECT category, SUM(current_value) as cat_total
+    FROM assets
+    WHERE user_id = p_user_id AND portfolio_type = 'real'
+    GROUP BY category
+  ) cat_totals;
+  
+  -- Get detailed asset breakdown
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'id', id,
+    'name', name,
+    'category', category,
+    'value', current_value
+  )), '[]'::jsonb)
+  INTO v_asset_breakdown
+  FROM assets
+  WHERE user_id = p_user_id AND portfolio_type = 'real';
+  
+  -- Insert or update snapshot
+  INSERT INTO portfolio_snapshots (user_id, snapshot_date, total_value, category_breakdown, asset_breakdown, asset_count, created_at)
+  VALUES (p_user_id, p_date, v_total, v_category_breakdown, v_asset_breakdown, v_asset_count, p_created_at)
+  ON CONFLICT (user_id, snapshot_date) 
+  DO UPDATE SET 
+    total_value = EXCLUDED.total_value,
+    category_breakdown = EXCLUDED.category_breakdown,
+    asset_breakdown = EXCLUDED.asset_breakdown,
+    asset_count = EXCLUDED.asset_count
+  RETURNING id INTO v_snapshot_id;
+  
+  RETURN v_snapshot_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Triggers for updated_at
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_target_portfolio_updated_at BEFORE UPDATE ON target_portfolio
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_assets_updated_at BEFORE UPDATE ON assets
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Helper function to record asset valuation
+CREATE OR REPLACE FUNCTION record_asset_valuation(p_asset_id UUID, p_date DATE, p_value DECIMAL(12,2), p_created_at TIMESTAMP WITH TIME ZONE)
+RETURNS UUID AS $$
+DECLARE
+  v_valuation_id UUID;
+BEGIN
+  INSERT INTO asset_valuations (asset_id, valuation_date, value, source, created_at)
+  VALUES (p_asset_id, p_date, p_value, 'manual', p_created_at)
+  ON CONFLICT (asset_id, valuation_date)
+  DO UPDATE SET value = EXCLUDED.value
+  RETURNING id INTO v_valuation_id;
+  
+  RETURN v_valuation_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

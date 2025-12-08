@@ -8,8 +8,7 @@ export type AssetCategory =
   | "ppk"
   | "gold"
   | "currencies"
-  | "cash"
-  | "custom";
+  | "cash";
 
 export type PortfolioType = "safety_cushion" | "target" | "real";
 
@@ -19,7 +18,6 @@ export interface Profile {
   id: string;
   email: string;
   created_at: string;
-  updated_at: string;
 }
 
 export type InvestorProfile = "cautious" | "stable" | "balanced" | "dynamic";
@@ -44,9 +42,7 @@ export interface TargetPortfolio {
   asset_name: string;
   asset_type: string;
   target_percentage: number;
-  color: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Asset {
@@ -54,13 +50,11 @@ export interface Asset {
   user_id: string;
   name: string;
   category: AssetCategory;
-  color: string;
   current_value: number;
   target_allocation?: number;
   currency: string;
   portfolio_type: PortfolioType;
   created_at: string;
-  updated_at: string;
 }
 
 export interface BondDetails {
@@ -149,9 +143,10 @@ export interface PortfolioSnapshot {
 
 export interface UserSettings {
   user_id: string;
-  minimum_cash_level: number;
   monthly_savings_amount: number;
   default_allocation: Record<string, any> | null;
+  safety_cushion_target: number;
+  safety_cushion_achieved: boolean;
   updated_at: string;
 }
 

@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { AssetCategory } from "@/types/database.types";
-import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
+import { PREDEFINED_ASSETS } from "@/types/assetConfig";
 import { AssetWithDetails } from "@/types/assetForms.types";
 import BondsForm from "./assetForms/BondsForm";
 import DepositsForm from "./assetForms/DepositsForm";
@@ -9,7 +9,6 @@ import SavingsAccountsForm from "./assetForms/SavingsAccountsForm";
 import FundsForm from "./assetForms/FundsForm";
 import SimpleValueForm from "./assetForms/SimpleValueForm";
 import CurrenciesForm from "./assetForms/CurrenciesForm";
-import CustomAssetsForm from "./assetForms/CustomAssetsForm";
 import RetirementAccountsForm from "./assetForms/RetirementAccountsForm";
 
 interface AssetDetailsWizardProps {
@@ -31,7 +30,7 @@ export default function AssetDetailsWizard({
   const [error, setError] = useState("");
 
   const currentType = selectedTypes[currentIndex];
-  const assetConfig = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
+  const assetConfig = PREDEFINED_ASSETS.find(
     (a) => a.category === currentType
   )!;
 
@@ -120,9 +119,7 @@ export default function AssetDetailsWizard({
 
       for (const type of selectedTypes) {
         const data = assetData.get(type);
-        const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
-          (a) => a.category === type
-        )!;
+        const config = PREDEFINED_ASSETS.find((a) => a.category === type)!;
 
         if (type === "ike_ikze") {
           if (data.ike) {
@@ -267,14 +264,6 @@ export default function AssetDetailsWizard({
       case "currencies":
         return (
           <CurrenciesForm
-            onDataChange={handleDataChange}
-            initialData={currentData}
-          />
-        );
-
-      case "custom":
-        return (
-          <CustomAssetsForm
             onDataChange={handleDataChange}
             initialData={currentData}
           />

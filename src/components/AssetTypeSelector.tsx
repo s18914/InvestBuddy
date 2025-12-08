@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, ArrowRight } from "lucide-react";
 import { AssetCategory } from "@/types/database.types";
-import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
+import { PREDEFINED_ASSETS } from "@/types/assetConfig";
 
 interface AssetTypeSelectorProps {
   onContinue: (selectedTypes: AssetCategory[]) => void;
@@ -28,7 +28,7 @@ export default function AssetTypeSelector({
     }
   };
 
-  const allAssets = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG];
+  const allAssets = PREDEFINED_ASSETS;
 
   return (
     <div className="max-w-4xl mx-auto">

@@ -9,15 +9,30 @@ import WelcomeScreen from "@/components/questionnaire/WelcomeScreen";
 import QuestionnaireForm from "@/components/questionnaire/QuestionnaireForm";
 import ResultScreen from "@/components/questionnaire/ResultScreen";
 import PortfolioStackedChart from "@/components/PortfolioStackedChart";
+import AssetTypeSelector from "@/components/AssetTypeSelector";
+import AssetDetailsWizard from "@/components/AssetDetailsWizard";
+import { AssetCategory } from "@/types/database.types";
+import { AssetWithDetails } from "@/types/assetForms.types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
+type AddAssetStep = "idle" | "selector" | "details";
 
 export default function Dashboard() {
   const { loading, hasCompleted, submitQuestionnaire } = useQuestionnaire();
-  const { assets, loading: assetsLoading } = useAssets("real");
+  const {
+    assets,
+    loading: assetsLoading,
+    addAsset,
+    refetch,
+  } = useAssets("real");
   const [step, setStep] = useState<QuestionnaireStep>("welcome");
   const [result, setResult] = useState<QuestionnaireResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [addAssetStep, setAddAssetStep] = useState<AddAssetStep>("idle");
+  const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
 
   if (loading || assetsLoading) {
     return (
@@ -32,7 +47,63 @@ export default function Dashboard() {
     );
   }
 
+  const handleAssetTypeContinue = (types: AssetCategory[]) => {
+    setSelectedTypes(types);
+    setAddAssetStep("details");
+  };
+
+  const handleAssetBack = () => {
+    setAddAssetStep("selector");
+  };
+
+  const handleAssetSave = async (assetsToSave: AssetWithDetails[]) => {
+    for (const asset of assetsToSave) {
+      await addAsset(
+        {
+          name: asset.name,
+          category: asset.category,
+          color: asset.color,
+          current_value: asset.current_value,
+          currency: asset.currency,
+          portfolio_type: "real",
+        },
+        asset.details
+      );
+    }
+    await refetch();
+    setAddAssetStep("idle");
+  };
+
   if (hasCompleted && step === "welcome") {
+    if (addAssetStep === "selector") {
+      return (
+        <div className="px-4 py-6 sm:px-0">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Dodaj aktywa</h1>
+            <Button variant="outline" onClick={() => setAddAssetStep("idle")}>
+              Anuluj
+            </Button>
+          </div>
+          <AssetTypeSelector onContinue={handleAssetTypeContinue} />
+        </div>
+      );
+    }
+
+    if (addAssetStep === "details") {
+      return (
+        <div className="px-4 py-6 sm:px-0">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            Dodaj aktywa
+          </h1>
+          <AssetDetailsWizard
+            selectedTypes={selectedTypes}
+            onBack={handleAssetBack}
+            onSave={handleAssetSave}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="px-4 py-6 sm:px-0">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
@@ -42,17 +113,40 @@ export default function Dashboard() {
         <div className="space-y-6">
           <PortfolioStackedChart />
 
-          {assets.length === 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-              <p className="text-gray-700 mb-4">
-                Nie masz jeszcze żadnych aktywów w portfelu.
-              </p>
-              <a
-                href="/profile"
-                className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          {assets.length === 0 ? (
+            <Card className="border-dashed border-2 border-blue-300 bg-blue-50/50">
+              <CardHeader className="text-center pb-2">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Wallet className="w-8 h-8 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">
+                  Rozpocznij budowę portfela
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-6">
+                  Nie masz jeszcze żadnych aktywów w portfelu rzeczywistym.
+                  Dodaj swoje pierwsze instrumenty inwestycyjne.
+                </p>
+                <Button
+                  size="lg"
+                  onClick={() => setAddAssetStep("selector")}
+                  className="gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Dodaj aktywa
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setAddAssetStep("selector")}
+                className="gap-2"
               >
-                Dodaj swoje pierwsze aktywa
-              </a>
+                <Plus className="w-4 h-4" />
+                Dodaj aktywa
+              </Button>
             </div>
           )}
         </div>

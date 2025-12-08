@@ -205,3 +205,63 @@ export async function deleteAssetDetails(
 
   if (error) throw error;
 }
+
+export async function fetchAssetDetails(
+  assetId: string,
+  category: AssetCategory
+) {
+  const tableMap: Record<string, string> = {
+    bonds: "bond_details",
+    deposits: "deposit_details",
+    savings_accounts: "savings_account_details",
+    investment_funds: "fund_details",
+    ike_ikze: "retirement_account_details",
+    gold: "gold_details",
+    currencies: "currency_details",
+  };
+
+  const tableName = tableMap[category];
+  if (!tableName) return null;
+
+  const { data, error } = await supabase
+    .from(tableName)
+    .select("*")
+    .eq("asset_id", assetId)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    console.error("Error fetching asset details:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function fetchAllAssetDetails(
+  assetIds: string[],
+  category: AssetCategory
+) {
+  const tableMap: Record<string, string> = {
+    bonds: "bond_details",
+    deposits: "deposit_details",
+    savings_accounts: "savings_account_details",
+    investment_funds: "fund_details",
+    ike_ikze: "retirement_account_details",
+    gold: "gold_details",
+    currencies: "currency_details",
+  };
+
+  const tableName = tableMap[category];
+  if (!tableName) return [];
+
+  const { data, error } = await supabase
+    .from(tableName)
+    .select("*")
+    .in("asset_id", assetIds);
+
+  if (error) {
+    console.error("Error fetching asset details:", error);
+    return [];
+  }
+  return data || [];
+}

@@ -7,6 +7,7 @@ import {
   TrendingUp,
   LogOut,
   PieChart,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,6 +23,7 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: "/", label: "Dashboard", icon: LayoutDashboard },
     { path: "/details", label: "Szczegóły portfela", icon: PieChart },
+    { path: "/assets", label: "Aktywa", icon: Wallet },
     { path: "/update", label: "Aktualizacja portfela", icon: RefreshCw },
     { path: "/profile", label: "Profil", icon: User },
   ];

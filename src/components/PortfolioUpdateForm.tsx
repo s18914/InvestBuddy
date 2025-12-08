@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Save, Plus, Edit2 } from "lucide-react";
 import { Asset } from "@/types/database.types";
-import { PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG } from "@/types/assetConfig";
+import { getCategoryColor, getCategoryLabel } from "@/types/assetConfig";
 
 interface AssetUpdate {
   id: string;
   name: string;
   category: string;
-  color: string;
   current_value: number;
   new_value: number;
   isEditing: boolean;
@@ -34,7 +33,6 @@ export default function PortfolioUpdateForm({
       id: asset.id,
       name: asset.name,
       category: asset.category,
-      color: asset.color,
       current_value: asset.current_value,
       new_value: asset.current_value,
       isEditing: false,
@@ -67,13 +65,6 @@ export default function PortfolioUpdateForm({
     } finally {
       setLoading(false);
     }
-  };
-
-  const getCategoryLabel = (category: string) => {
-    const config = [...PREDEFINED_ASSETS, CUSTOM_ASSET_CONFIG].find(
-      (a) => a.category === category
-    );
-    return config?.label || category;
   };
 
   const hasChanges = assetUpdates.some(
@@ -151,7 +142,7 @@ export default function PortfolioUpdateForm({
             >
               <div
                 className="w-4 h-4 rounded-full flex-shrink-0"
-                style={{ backgroundColor: asset.color }}
+                style={{ backgroundColor: getCategoryColor(asset.category) }}
               />
 
               <div className="flex-1 min-w-0">
