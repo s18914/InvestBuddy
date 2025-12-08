@@ -126,7 +126,6 @@ export default function AssetDetailsWizard({
             assetsToSave.push({
               name: "IKE",
               category: type,
-              color: config.color,
               current_value: data.ike.current_value,
               currency: "PLN",
               details: {
@@ -140,7 +139,6 @@ export default function AssetDetailsWizard({
             assetsToSave.push({
               name: "IKZE",
               category: type,
-              color: config.color,
               current_value: data.ikze.current_value,
               currency: "PLN",
               details: {
@@ -172,7 +170,6 @@ export default function AssetDetailsWizard({
             assetsToSave.push({
               name: assetName,
               category: type,
-              color: item.color || config.color,
               current_value: item.current_value,
               currency: "PLN",
               details: item,
@@ -182,7 +179,6 @@ export default function AssetDetailsWizard({
           assetsToSave.push({
             name: config.label,
             category: type,
-            color: config.color,
             current_value: data.current_value,
             currency: "PLN",
             details: data,

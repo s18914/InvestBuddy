@@ -7,7 +7,6 @@ export interface AssetTypeConfig {
 }
 
 // Modern, harmonious color palette for financial assets
-// Colors are determined by category - NOT stored in database
 export const CATEGORY_COLORS: Record<AssetCategory, string> = {
   bonds: "#6366F1", // Indigo - stable, trustworthy
   deposits: "#8B5CF6", // Violet - secure savings

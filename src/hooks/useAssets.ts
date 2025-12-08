@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Asset } from "@/types/database.types";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import {
   saveAssetDetails,
   deleteAssetDetails,
@@ -14,6 +15,7 @@ export function useAssets(portfolioType?: PortfolioType) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { getCurrentDate } = useTestMode();
 
   const fetchAssets = async () => {
     if (!user) return;
@@ -42,15 +44,25 @@ export function useAssets(portfolioType?: PortfolioType) {
   }, [user]);
 
   const addAsset = async (
-    asset: Omit<Asset, "id" | "user_id" | "created_at" | "updated_at">,
+    asset: Omit<Asset, "id" | "user_id" | "created_at" | "status"> & {
+      status?: Asset["status"];
+    },
     details?: any
   ) => {
     if (!user) return;
 
     try {
+      const createdAt = getCurrentDate();
       const { data, error } = await supabase
         .from("assets")
-        .insert([{ ...asset, user_id: user.id }])
+        .insert([
+          {
+            ...asset,
+            user_id: user.id,
+            created_at: createdAt,
+            status: asset.status || "active",
+          },
+        ])
         .select()
         .single();
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAssets } from "@/hooks/useAssets";
 import { Asset, AssetCategory } from "@/types/database.types";
 import { fetchAllAssetDetails } from "@/services/assetDetailsService";
-import { PREDEFINED_ASSETS } from "@/types/assetConfig";
+import { getCategoryColor } from "@/types/assetConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -153,11 +153,6 @@ export default function Assets() {
     );
   }
 
-  const getCategoryColor = (category: string): string => {
-    const config = PREDEFINED_ASSETS.find((a) => a.category === category);
-    return config?.color || "#939597";
-  };
-
   return (
     <div className="px-4 py-6 sm:px-0">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Aktywa</h1>
@@ -258,11 +253,6 @@ function CategoryDetails({
       </div>
     );
   }
-
-  const getCategoryColor = (cat: string): string => {
-    const assetConfig = PREDEFINED_ASSETS.find((a) => a.category === cat);
-    return assetConfig?.color || "#939597";
-  };
 
   return (
     <div className="space-y-6">
@@ -525,7 +515,7 @@ function AssetDetailRow({ asset, category }: AssetDetailRowProps) {
         <div className="flex items-center gap-3">
           <div
             className="w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: asset.color }}
+            style={{ backgroundColor: getCategoryColor(asset.category) }}
           />
           <p className="font-medium text-gray-900">{asset.name}</p>
         </div>

@@ -9,6 +9,7 @@ import { AssetWithDetails } from "@/types/assetForms.types";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTestMode } from "@/contexts/TestModeContext";
+import TestModeToggle from "@/components/TestModeToggle";
 
 interface MonthSnapshot {
   id: string;
@@ -25,7 +26,7 @@ type Step =
   | "add-new-details";
 
 export default function PortfolioUpdate() {
-  const { assets, addAsset, refetch } = useAssets();
+  const { assets, addAsset, deleteAsset, refetch } = useAssets("real");
   const { user } = useAuth();
   const { getCurrentDate } = useTestMode();
   const [step, setStep] = useState<Step>("month-select");
@@ -257,6 +258,16 @@ export default function PortfolioUpdate() {
     }
   };
 
+  const handleDeleteAsset = async (assetId: string) => {
+    try {
+      await deleteAsset(assetId);
+      await refetch();
+      setSuccess("Aktywo zostało usunięte");
+    } catch (err: any) {
+      setError(err.message || "Nie udało się usunąć aktywa");
+    }
+  };
+
   const monthOptions = generateMonthOptions();
   const isMonthCompleted = (month: string) => {
     return snapshots.some((s) => s.snapshot_date.startsWith(month));
@@ -264,6 +275,7 @@ export default function PortfolioUpdate() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
+      <TestModeToggle />
       <h1 className="text-3xl font-bold text-gray-900 mb-6">
         Aktualizacja portfela
       </h1>
@@ -361,6 +373,8 @@ export default function PortfolioUpdate() {
             selectedMonth={selectedMonth}
             onSave={handleUpdateSave}
             onAddNew={handleAddNew}
+            onDelete={handleDeleteAsset}
+            currentDate={getCurrentDate()}
           />
         </div>
       )}

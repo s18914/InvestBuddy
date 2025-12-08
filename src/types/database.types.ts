@@ -45,6 +45,8 @@ export interface TargetPortfolio {
   created_at: string;
 }
 
+export type AssetStatus = "active" | "matured" | "sold" | "closed";
+
 export interface Asset {
   id: string;
   user_id: string;
@@ -54,6 +56,7 @@ export interface Asset {
   target_allocation?: number;
   currency: string;
   portfolio_type: PortfolioType;
+  status: AssetStatus;
   created_at: string;
 }
 
@@ -109,6 +112,7 @@ export interface FundDetails {
 export interface GoldDetails {
   asset_id: string;
   ounces: number;
+  exchange_rate: number | null;
   created_at: string;
 }
 
@@ -116,6 +120,8 @@ export interface CurrencyDetails {
   id: string;
   asset_id: string;
   currency_code: string;
+  amount: number | null;
+  exchange_rate: number | null;
   created_at: string;
 }
 

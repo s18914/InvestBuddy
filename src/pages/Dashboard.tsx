@@ -16,6 +16,7 @@ import { AssetWithDetails } from "@/types/assetForms.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TestModeToggle from "@/components/TestModeToggle";
 
 type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
 type AddAssetStep = "idle" | "selector" | "details";
@@ -62,7 +63,6 @@ export default function Dashboard() {
         {
           name: asset.name,
           category: asset.category,
-          color: asset.color,
           current_value: asset.current_value,
           currency: asset.currency,
           portfolio_type: "real",
@@ -78,6 +78,7 @@ export default function Dashboard() {
     if (addAssetStep === "selector") {
       return (
         <div className="px-4 py-6 sm:px-0">
+          <TestModeToggle />
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Dodaj aktywa</h1>
             <Button variant="outline" onClick={() => setAddAssetStep("idle")}>
@@ -92,6 +93,7 @@ export default function Dashboard() {
     if (addAssetStep === "details") {
       return (
         <div className="px-4 py-6 sm:px-0">
+          <TestModeToggle />
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
             Dodaj aktywa
           </h1>
@@ -106,6 +108,7 @@ export default function Dashboard() {
 
     return (
       <div className="px-4 py-6 sm:px-0">
+        <TestModeToggle />
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
           Witaj ponownie 👋
         </h1>

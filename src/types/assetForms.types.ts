@@ -30,15 +30,13 @@ export interface FundFormData extends BaseAssetFormData {
 
 export interface GoldFormData extends BaseAssetFormData {
   ounces: number;
+  exchange_rate: number;
 }
 
 export interface CurrencyFormData extends BaseAssetFormData {
   currency_code: string;
-}
-
-export interface CustomAssetFormData extends BaseAssetFormData {
-  name: string;
-  color: string;
+  amount: number;
+  exchange_rate: number;
 }
 
 export interface RetirementAccountFormData {
@@ -60,14 +58,12 @@ export type AssetFormData =
   | FundFormData
   | GoldFormData
   | CurrencyFormData
-  | CustomAssetFormData
   | RetirementAccountFormData
   | BaseAssetFormData;
 
 export interface AssetWithDetails {
   name: string;
   category: AssetCategory;
-  color: string;
   current_value: number;
   currency: string;
   details?: any;

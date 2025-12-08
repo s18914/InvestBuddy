@@ -13,6 +13,7 @@ import PortfolioPieChart from "@/components/PortfolioPieChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PiggyBank, Target, TrendingUp } from "lucide-react";
 import { resetUserData } from "@/services/userResetService";
+import TestModeToggle from "@/components/TestModeToggle";
 
 type Step = "selector" | "details" | "portfolio";
 
@@ -182,7 +183,6 @@ export default function Profile() {
         {
           name: asset.name,
           category: asset.category,
-          color: asset.color,
           current_value: asset.current_value,
           currency: asset.currency,
           portfolio_type: "real",
@@ -196,6 +196,7 @@ export default function Profile() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
+      <TestModeToggle />
       {step === "selector" && <AssetTypeSelector onContinue={handleContinue} />}
 
       {step === "details" && (

@@ -92,7 +92,7 @@ export default function PortfolioPieChart({
       )}
       {!title && !compact && (
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {showAllocation ? "Docelowa alokacja" : "Skład portfela"}
+          {showAllocation ? "Docelowa alokacja" : "Skład poduszki"}
         </h3>
       )}
       <ResponsiveContainer width="100%" height={compact ? 250 : 300}>

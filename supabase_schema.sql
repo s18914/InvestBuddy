@@ -26,13 +26,13 @@ CREATE TABLE mifid_responses (
 );
 
 -- Target portfolio configuration
+-- Note: color is NOT stored in DB - determined by frontend based on asset_type
 CREATE TABLE target_portfolio (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   asset_name TEXT NOT NULL,
   asset_type TEXT NOT NULL,
   target_percentage DECIMAL(5,2) NOT NULL CHECK (target_percentage >= 0 AND target_percentage <= 100),
-  color TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, asset_name)
 );
@@ -60,16 +60,17 @@ CREATE TYPE portfolio_type AS ENUM (
 
 -- Assets (actual holdings)
 -- Note: created_at has no default - must be provided by frontend (for test mode support)
+-- Note: color is NOT stored in DB - determined by frontend based on category
 CREATE TABLE assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   category asset_category NOT NULL,
-  color TEXT NOT NULL,
   current_value DECIMAL(12,2) NOT NULL DEFAULT 0,
   target_allocation DECIMAL(5,2) DEFAULT 0,
   currency TEXT DEFAULT 'PLN',
   portfolio_type portfolio_type DEFAULT 'real',
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'matured', 'sold', 'closed')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
@@ -143,6 +144,7 @@ CREATE TABLE fund_details (
 CREATE TABLE gold_details (
   asset_id UUID REFERENCES assets(id) ON DELETE CASCADE PRIMARY KEY,
   ounces DECIMAL(12,4) NOT NULL,
+  exchange_rate DECIMAL(12,2),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -151,6 +153,8 @@ CREATE TABLE currency_details (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
   currency_code TEXT NOT NULL,
+  amount DECIMAL(12,4),
+  exchange_rate DECIMAL(12,4),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

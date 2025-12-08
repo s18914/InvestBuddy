@@ -130,7 +130,6 @@ export function Onboarding() {
             category: "deposits",
             current_value: (targetCushionAmount * allocation.deposits) / 100,
             target_allocation: allocation.deposits,
-            color: "#3b82f6",
             portfolio_type: "safety_cushion",
             created_at: today,
           })
@@ -165,7 +164,6 @@ export function Onboarding() {
             current_value:
               (targetCushionAmount * allocation.savingsAccounts) / 100,
             target_allocation: allocation.savingsAccounts,
-            color: "#10b981",
             portfolio_type: "safety_cushion",
             created_at: today,
           })
@@ -198,7 +196,6 @@ export function Onboarding() {
             current_value:
               (targetCushionAmount * allocation.inflationBonds) / 100,
             target_allocation: allocation.inflationBonds,
-            color: "#f59e0b",
             portfolio_type: "safety_cushion",
             created_at: today,
           })
@@ -262,7 +259,6 @@ export function Onboarding() {
             category: asset.category,
             current_value: 0,
             target_allocation: asset.allocation,
-            color: asset.color,
             portfolio_type: "target",
             created_at: today,
           })
