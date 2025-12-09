@@ -203,6 +203,7 @@ CREATE TABLE portfolio_snapshots (
 CREATE TABLE user_settings (
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
   monthly_savings_amount DECIMAL(12,2) DEFAULT 0,
+  minimum_cash_level DECIMAL(12,2) DEFAULT 0,
   default_allocation JSONB,
   safety_cushion_target DECIMAL(12,2) DEFAULT 0,
   safety_cushion_achieved BOOLEAN DEFAULT FALSE

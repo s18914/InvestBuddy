@@ -150,6 +150,7 @@ export interface PortfolioSnapshot {
 export interface UserSettings {
   user_id: string;
   monthly_savings_amount: number;
+  minimum_cash_level: number;
   default_allocation: Record<string, any> | null;
   safety_cushion_target: number;
   safety_cushion_achieved: boolean;
