@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TestModeToggle from "@/components/TestModeToggle";
+import AlertsSection from "@/components/AlertsSection";
 
 type QuestionnaireStep = "welcome" | "questionnaire" | "result" | "completed";
 type AddAssetStep = "idle" | "selector" | "details";
@@ -115,6 +116,8 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <PortfolioStackedChart />
+
+          <AlertsSection />
 
           {assets.length === 0 ? (
             <Card className="border-dashed border-2 border-blue-300 bg-blue-50/50">
