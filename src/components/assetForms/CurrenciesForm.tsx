@@ -19,6 +19,8 @@ export default function CurrenciesForm({
     return {
       current_value: 0,
       currency_code: "",
+      amount: 0,
+      exchange_rate: 0,
     };
   }
 
@@ -28,7 +30,16 @@ export default function CurrenciesForm({
     value: any
   ) => {
     const newCurrencies = [...currencies];
-    newCurrencies[index] = { ...newCurrencies[index], [field]: value };
+    const currency = { ...newCurrencies[index], [field]: value };
+
+    if (field === "amount" || field === "exchange_rate") {
+      const amount = field === "amount" ? value : currency.amount || 0;
+      const rate =
+        field === "exchange_rate" ? value : currency.exchange_rate || 0;
+      currency.current_value = amount * rate;
+    }
+
+    newCurrencies[index] = currency;
     setCurrencies(newCurrencies);
     onDataChange(newCurrencies);
   };
@@ -49,22 +60,27 @@ export default function CurrenciesForm({
 
   return (
     <div className="space-y-6">
-      {currencies.map((currency, index) => (
-        <div key={index} className="bg-gray-50 p-4 rounded-lg space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-gray-900">Waluta {index + 1}</h3>
-            {currencies.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeCurrency(index)}
-                className="text-red-600 hover:text-red-700 p-1"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            )}
-          </div>
+      {currencies.map((currency, index) => {
+        const calculatedValue =
+          (currency.amount || 0) * (currency.exchange_rate || 0);
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        return (
+          <div key={index} className="bg-gray-50 p-4 rounded-lg space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-gray-900">
+                Waluta {index + 1}
+              </h3>
+              {currencies.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCurrency(index)}
+                  className="text-red-600 hover:text-red-700 p-1"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Waluta *
@@ -86,30 +102,65 @@ export default function CurrenciesForm({
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Wartość w PLN *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={currency.current_value || ""}
-                onChange={(e) =>
-                  updateCurrency(
-                    index,
-                    "current_value",
-                    parseFloat(e.target.value) || 0
-                  )
-                }
-                required
-                min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ilość {currency.currency_code || "waluty"} *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={currency.amount || ""}
+                  onChange={(e) =>
+                    updateCurrency(
+                      index,
+                      "amount",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
+                  required
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="np. 1000.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kurs PLN/{currency.currency_code || "waluta"} *
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={currency.exchange_rate || ""}
+                  onChange={(e) =>
+                    updateCurrency(
+                      index,
+                      "exchange_rate",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
+                  required
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="np. 4.05"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-600">Obliczona wartość:</p>
+              <p className="text-lg font-semibold text-blue-600">
+                {calculatedValue.toLocaleString("pl-PL", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                PLN
+              </p>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <button
         type="button"

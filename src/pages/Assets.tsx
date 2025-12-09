@@ -3,6 +3,7 @@ import { useAssets } from "@/hooks/useAssets";
 import { Asset, AssetCategory } from "@/types/database.types";
 import { fetchAllAssetDetails } from "@/services/assetDetailsService";
 import { getCategoryColor } from "@/types/assetConfig";
+import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -28,26 +29,18 @@ import {
 
 const CATEGORY_CONFIG: Record<
   string,
-  { label: string; icon: React.ElementType; showChart: boolean }
+  { label: string; icon: React.ElementType }
 > = {
-  bonds: { label: "Obligacje", icon: Landmark, showChart: false },
-  deposits: { label: "Lokaty", icon: Building2, showChart: false },
-  savings_accounts: {
-    label: "Konta oszczędnościowe",
-    icon: PiggyBank,
-    showChart: true,
-  },
-  investment_funds: { label: "Fundusze", icon: TrendingUp, showChart: false },
-  foreign_stocks: {
-    label: "Akcje zagraniczne",
-    icon: TrendingUp,
-    showChart: true,
-  },
-  ike_ikze: { label: "IKE/IKZE", icon: Landmark, showChart: false },
-  ppk: { label: "PPK", icon: Coins, showChart: true },
-  gold: { label: "Złoto", icon: Coins, showChart: true },
-  currencies: { label: "Waluty", icon: CircleDollarSign, showChart: true },
-  cash: { label: "Gotówka", icon: Wallet, showChart: true },
+  bonds: { label: "Obligacje", icon: Landmark },
+  deposits: { label: "Lokaty", icon: Building2 },
+  savings_accounts: { label: "Konta oszczędnościowe", icon: PiggyBank },
+  investment_funds: { label: "Fundusze", icon: TrendingUp },
+  foreign_stocks: { label: "Akcje zagraniczne", icon: TrendingUp },
+  ike_ikze: { label: "IKE/IKZE", icon: Landmark },
+  ppk: { label: "PPK", icon: Coins },
+  gold: { label: "Złoto", icon: Coins },
+  currencies: { label: "Waluty", icon: CircleDollarSign },
+  cash: { label: "Gotówka", icon: Wallet },
 };
 
 const CATEGORY_ORDER: AssetCategory[] = [
@@ -220,7 +213,6 @@ export default function Assets() {
               category={selectedCategory}
               assets={assetsWithDetails}
               loading={detailsLoading}
-              showChart={CATEGORY_CONFIG[selectedCategory]?.showChart || false}
             />
           )}
         </div>
@@ -233,15 +225,9 @@ interface CategoryDetailsProps {
   category: AssetCategory;
   assets: AssetWithDetails[];
   loading: boolean;
-  showChart: boolean;
 }
 
-function CategoryDetails({
-  category,
-  assets,
-  loading,
-  showChart,
-}: CategoryDetailsProps) {
+function CategoryDetails({ category, assets, loading }: CategoryDetailsProps) {
   const config = CATEGORY_CONFIG[category];
   const Icon = config?.icon || Package;
   const totalValue = assets.reduce((sum, a) => sum + a.current_value, 0);
@@ -285,17 +271,24 @@ function CategoryDetails({
         </CardHeader>
       </Card>
 
-      {/* Historical Chart for applicable categories */}
-      {showChart && (
+      {/* Historical Value Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Historia wartości</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HistoricalChart assets={assets} color={getCategoryColor(category)} />
+        </CardContent>
+      </Card>
+
+      {/* Gold: Additional chart for ounces and exchange rate */}
+      {category === "gold" && assets.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Historia wartości</CardTitle>
+            <CardTitle className="text-lg">Historia ilości i kursu</CardTitle>
           </CardHeader>
           <CardContent>
-            <HistoricalChart
-              assets={assets}
-              color={getCategoryColor(category)}
-            />
+            <GoldDetailsChart assetId={assets[0].id} />
           </CardContent>
         </Card>
       )}
@@ -317,6 +310,24 @@ function CategoryDetails({
           </div>
         </CardContent>
       </Card>
+
+      {/* Currencies: Individual charts for each currency */}
+      {category === "currencies" &&
+        assets.map((asset) => (
+          <Card key={`chart-${asset.id}`}>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {asset.name} - ilość i kurs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CurrencyDetailsChart
+                assetId={asset.id}
+                currencyCode={asset.details?.currency_code || "USD"}
+              />
+            </CardContent>
+          </Card>
+        ))}
     </div>
   );
 }
@@ -548,27 +559,95 @@ interface HistoricalChartProps {
 }
 
 function HistoricalChart({ assets, color }: HistoricalChartProps) {
-  // Generate mock historical data for demonstration
-  // In production, this would come from portfolio_snapshots table
+  const [chartData, setChartData] = useState<{ date: string; value: number }[]>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
+
   const totalValue = assets.reduce((sum, a) => sum + a.current_value, 0);
+  const assetIds = assets.map((a) => a.id);
 
-  const data = Array.from({ length: 12 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - (11 - i));
-    const variance = 0.9 + Math.random() * 0.2;
-    return {
-      date: date.toLocaleDateString("pl-PL", {
-        month: "short",
-        year: "2-digit",
-      }),
-      value: Math.round(totalValue * variance * (0.7 + (i / 11) * 0.3)),
-    };
-  });
+  useEffect(() => {
+    async function loadValuations() {
+      if (assetIds.length === 0) {
+        setChartData([]);
+        setLoading(false);
+        return;
+      }
 
-  // Set last point to current value
-  data[data.length - 1].value = totalValue;
+      try {
+        const { data, error } = await supabase
+          .from("asset_valuations")
+          .select("valuation_date, value, asset_id")
+          .in("asset_id", assetIds)
+          .order("valuation_date", { ascending: true });
 
-  if (totalValue === 0) {
+        if (error) throw error;
+
+        const groupedByDate = new Map<string, number>();
+
+        for (const row of data || []) {
+          const dateKey = row.valuation_date;
+          const current = groupedByDate.get(dateKey) || 0;
+          groupedByDate.set(dateKey, current + Number(row.value));
+        }
+
+        const chartPoints = Array.from(groupedByDate.entries())
+          .map(([date, value]) => ({
+            date: new Date(date).toLocaleDateString("pl-PL", {
+              month: "short",
+              year: "2-digit",
+            }),
+            value,
+            sortKey: date,
+          }))
+          .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+          .map(({ date, value }) => ({ date, value }));
+
+        if (chartPoints.length > 0) {
+          const lastPoint = chartPoints[chartPoints.length - 1];
+          if (lastPoint.value !== totalValue) {
+            const today = new Date().toLocaleDateString("pl-PL", {
+              month: "short",
+              year: "2-digit",
+            });
+            if (lastPoint.date !== today) {
+              chartPoints.push({ date: today, value: totalValue });
+            } else {
+              lastPoint.value = totalValue;
+            }
+          }
+        } else if (totalValue > 0) {
+          chartPoints.push({
+            date: new Date().toLocaleDateString("pl-PL", {
+              month: "short",
+              year: "2-digit",
+            }),
+            value: totalValue,
+          });
+        }
+
+        setChartData(chartPoints);
+      } catch (err) {
+        console.error("Error loading valuations:", err);
+        setChartData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadValuations();
+  }, [assetIds.join(","), totalValue]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0 || totalValue === 0) {
     return (
       <div className="flex items-center justify-center h-48 bg-gray-50 rounded-lg">
         <p className="text-gray-500 text-sm">Brak danych historycznych</p>
@@ -578,13 +657,15 @@ function HistoricalChart({ assets, color }: HistoricalChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <LineChart data={data}>
+      <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
         <YAxis
           tick={{ fontSize: 12 }}
           stroke="#9ca3af"
-          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+          tickFormatter={(value) =>
+            value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
+          }
         />
         <Tooltip
           formatter={(value: number) => [
@@ -601,10 +682,275 @@ function HistoricalChart({ assets, color }: HistoricalChartProps) {
           dataKey="value"
           stroke={color}
           strokeWidth={2}
-          dot={false}
+          dot={chartData.length <= 12}
           activeDot={{ r: 6, fill: color }}
         />
       </LineChart>
     </ResponsiveContainer>
+  );
+}
+
+interface GoldDetailsChartProps {
+  assetId: string;
+}
+
+function GoldDetailsChart({ assetId }: GoldDetailsChartProps) {
+  const [chartData, setChartData] = useState<
+    { date: string; ounces: number; rate: number }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data, error } = await supabase
+          .from("asset_valuations")
+          .select("valuation_date, quantity, exchange_rate")
+          .eq("asset_id", assetId)
+          .not("quantity", "is", null)
+          .order("valuation_date", { ascending: true });
+
+        if (error) throw error;
+
+        const points = (data || []).map((row) => ({
+          date: new Date(row.valuation_date).toLocaleDateString("pl-PL", {
+            month: "short",
+            year: "2-digit",
+          }),
+          ounces: Number(row.quantity) || 0,
+          rate: Number(row.exchange_rate) || 0,
+        }));
+
+        setChartData(points);
+      } catch (err) {
+        console.error("Error loading gold details:", err);
+        setChartData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [assetId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600"></div>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 bg-gray-50 rounded-lg">
+        <p className="text-gray-500 text-sm">Brak danych historycznych</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-medium text-gray-600 mb-2">Ilość uncji</p>
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              stroke="#9ca3af"
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              formatter={(value: number) => [`${value.toFixed(4)} oz`, "Uncje"]}
+              labelStyle={{ color: "#374151" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="ounces"
+              stroke="#d97706"
+              strokeWidth={2}
+              dot={chartData.length <= 12}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-600 mb-2">Kurs PLN/oz</p>
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              stroke="#9ca3af"
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              formatter={(value: number) => [
+                `${value.toLocaleString("pl-PL", {
+                  minimumFractionDigits: 2,
+                })} PLN`,
+                "Kurs",
+              ]}
+              labelStyle={{ color: "#374151" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="rate"
+              stroke="#059669"
+              strokeWidth={2}
+              dot={chartData.length <= 12}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+interface CurrencyDetailsChartProps {
+  assetId: string;
+  currencyCode: string;
+}
+
+function CurrencyDetailsChart({
+  assetId,
+  currencyCode,
+}: CurrencyDetailsChartProps) {
+  const [chartData, setChartData] = useState<
+    { date: string; amount: number; rate: number }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data, error } = await supabase
+          .from("asset_valuations")
+          .select("valuation_date, quantity, exchange_rate")
+          .eq("asset_id", assetId)
+          .not("quantity", "is", null)
+          .order("valuation_date", { ascending: true });
+
+        if (error) throw error;
+
+        const points = (data || []).map((row) => ({
+          date: new Date(row.valuation_date).toLocaleDateString("pl-PL", {
+            month: "short",
+            year: "2-digit",
+          }),
+          amount: Number(row.quantity) || 0,
+          rate: Number(row.exchange_rate) || 0,
+        }));
+
+        setChartData(points);
+      } catch (err) {
+        console.error("Error loading currency details:", err);
+        setChartData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [assetId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 bg-gray-50 rounded-lg">
+        <p className="text-gray-500 text-sm">Brak danych historycznych</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-medium text-gray-600 mb-2">
+          Ilość {currencyCode}
+        </p>
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              stroke="#9ca3af"
+              domain={["auto", "auto"]}
+            />
+            <Tooltip
+              formatter={(value: number) => [
+                `${value.toLocaleString("pl-PL", {
+                  minimumFractionDigits: 2,
+                })} ${currencyCode}`,
+                "Ilość",
+              ]}
+              labelStyle={{ color: "#374151" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="amount"
+              stroke="#2563eb"
+              strokeWidth={2}
+              dot={chartData.length <= 12}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-600 mb-2">
+          Kurs PLN/{currencyCode}
+        </p>
+        <ResponsiveContainer width="100%" height={150}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
+            <Tooltip
+              formatter={(value: number) => [
+                `${value.toLocaleString("pl-PL", {
+                  minimumFractionDigits: 4,
+                })} PLN`,
+                "Kurs",
+              ]}
+              labelStyle={{ color: "#374151" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="rate"
+              stroke="#7c3aed"
+              strokeWidth={2}
+              dot={chartData.length <= 12}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

@@ -76,11 +76,14 @@ CREATE TABLE assets (
 
 -- Historical valuations for each asset
 -- This table stores the value history of each asset over time
+-- For gold/currencies: quantity and exchange_rate store historical values
 CREATE TABLE asset_valuations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
   valuation_date DATE NOT NULL,
   value DECIMAL(12,2) NOT NULL,
+  quantity DECIMAL(12,4),        -- For gold: ounces, for currencies: amount in foreign currency
+  exchange_rate DECIMAL(12,4),   -- For gold: PLN per ounce, for currencies: PLN per unit
   source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'auto', 'import')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   UNIQUE(asset_id, valuation_date)
@@ -347,18 +350,54 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to record asset valuation
-CREATE OR REPLACE FUNCTION record_asset_valuation(p_asset_id UUID, p_date DATE, p_value DECIMAL(12,2), p_created_at TIMESTAMP WITH TIME ZONE)
+-- Helper function to record asset valuation (with optional quantity and exchange_rate for gold/currencies)
+CREATE OR REPLACE FUNCTION record_asset_valuation(
+  p_asset_id UUID, 
+  p_date DATE, 
+  p_value DECIMAL(12,2), 
+  p_created_at TIMESTAMP WITH TIME ZONE,
+  p_quantity DECIMAL(12,4) DEFAULT NULL,
+  p_exchange_rate DECIMAL(12,4) DEFAULT NULL
+)
 RETURNS UUID AS $$
 DECLARE
   v_valuation_id UUID;
 BEGIN
-  INSERT INTO asset_valuations (asset_id, valuation_date, value, source, created_at)
-  VALUES (p_asset_id, p_date, p_value, 'manual', p_created_at)
+  INSERT INTO asset_valuations (asset_id, valuation_date, value, quantity, exchange_rate, source, created_at)
+  VALUES (p_asset_id, p_date, p_value, p_quantity, p_exchange_rate, 'manual', p_created_at)
   ON CONFLICT (asset_id, valuation_date)
-  DO UPDATE SET value = EXCLUDED.value
+  DO UPDATE SET 
+    value = EXCLUDED.value,
+    quantity = EXCLUDED.quantity,
+    exchange_rate = EXCLUDED.exchange_rate
   RETURNING id INTO v_valuation_id;
   
   RETURN v_valuation_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- RLS Policies for asset_valuations
+-- ============================================
+
+ALTER TABLE asset_valuations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own asset valuations" ON asset_valuations
+  FOR SELECT USING (
+    asset_id IN (SELECT id FROM assets WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can insert own asset valuations" ON asset_valuations
+  FOR INSERT WITH CHECK (
+    asset_id IN (SELECT id FROM assets WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can update own asset valuations" ON asset_valuations
+  FOR UPDATE USING (
+    asset_id IN (SELECT id FROM assets WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "Users can delete own asset valuations" ON asset_valuations
+  FOR DELETE USING (
+    asset_id IN (SELECT id FROM assets WHERE user_id = auth.uid())
+  );

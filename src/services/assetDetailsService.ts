@@ -153,6 +153,7 @@ async function saveGoldDetails(assetId: string, details: any) {
   const goldData = {
     asset_id: assetId,
     ounces: details.ounces,
+    exchange_rate: details.exchange_rate || null,
   };
 
   const { data, error } = await supabase
@@ -169,6 +170,8 @@ async function saveCurrencyDetails(assetId: string, details: any) {
   const currencyData = {
     asset_id: assetId,
     currency_code: details.currency_code,
+    amount: details.amount || null,
+    exchange_rate: details.exchange_rate || null,
   };
 
   const { data, error } = await supabase
@@ -179,6 +182,32 @@ async function saveCurrencyDetails(assetId: string, details: any) {
 
   if (error) throw error;
   return data;
+}
+
+export async function updateGoldDetails(
+  assetId: string,
+  ounces: number,
+  exchangeRate: number
+) {
+  const { error } = await supabase
+    .from("gold_details")
+    .update({ ounces, exchange_rate: exchangeRate })
+    .eq("asset_id", assetId);
+
+  if (error) throw error;
+}
+
+export async function updateCurrencyDetails(
+  assetId: string,
+  amount: number,
+  exchangeRate: number
+) {
+  const { error } = await supabase
+    .from("currency_details")
+    .update({ amount, exchange_rate: exchangeRate })
+    .eq("asset_id", assetId);
+
+  if (error) throw error;
 }
 
 export async function deleteAssetDetails(

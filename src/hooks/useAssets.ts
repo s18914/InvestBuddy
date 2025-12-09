@@ -22,7 +22,11 @@ export function useAssets(portfolioType?: PortfolioType) {
 
     try {
       setLoading(true);
-      let query = supabase.from("assets").select("*").eq("user_id", user.id);
+      let query = supabase
+        .from("assets")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active");
 
       if (portfolioType) {
         query = query.eq("portfolio_type", portfolioType);
@@ -47,12 +51,13 @@ export function useAssets(portfolioType?: PortfolioType) {
     asset: Omit<Asset, "id" | "user_id" | "created_at" | "status"> & {
       status?: Asset["status"];
     },
-    details?: any
+    details?: any,
+    overrideCreatedAt?: string
   ) => {
     if (!user) return;
 
     try {
-      const createdAt = getCurrentDate();
+      const createdAt = overrideCreatedAt || getCurrentDate();
       const { data, error } = await supabase
         .from("assets")
         .insert([
@@ -104,16 +109,16 @@ export function useAssets(portfolioType?: PortfolioType) {
 
   const deleteAsset = async (id: string) => {
     try {
-      const asset = assets.find((a) => a.id === id);
-
-      if (asset) {
-        await deleteAssetDetails(id, asset.category);
-      }
-
-      const { error } = await supabase.from("assets").delete().eq("id", id);
+      const { data, error } = await supabase
+        .from("assets")
+        .update({ status: "closed" })
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
       setAssets(assets.filter((a) => a.id !== id));
+      return data;
     } catch (err: any) {
       setError(err.message);
       throw err;

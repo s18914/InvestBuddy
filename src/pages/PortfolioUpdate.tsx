@@ -10,6 +10,10 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTestMode } from "@/contexts/TestModeContext";
 import TestModeToggle from "@/components/TestModeToggle";
+import {
+  updateGoldDetails,
+  updateCurrencyDetails,
+} from "@/services/assetDetailsService";
 
 interface MonthSnapshot {
   id: string;
@@ -39,6 +43,7 @@ export default function PortfolioUpdate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pendingAssets, setPendingAssets] = useState<AssetWithDetails[]>([]);
 
   // Load the earliest asset creation date to determine portfolio start
   useEffect(() => {
@@ -138,6 +143,7 @@ export default function PortfolioUpdate() {
     } else if (step === "add-new-selector") {
       setStep("update-form");
     } else if (step === "update-form") {
+      setPendingAssets([]);
       setStep("month-select");
     }
   };
@@ -196,11 +202,81 @@ export default function PortfolioUpdate() {
       let totalValue = 0;
       const assetBreakdown: any = {};
 
+      const updateCreatedAt = `${selectedMonth}-15T12:00:00.000Z`;
+
+      for (const pendingAsset of pendingAssets) {
+        await addAsset(
+          {
+            name: pendingAsset.name,
+            category: pendingAsset.category,
+            current_value: pendingAsset.current_value,
+            currency: pendingAsset.currency,
+            portfolio_type: "real",
+          },
+          pendingAsset.details,
+          updateCreatedAt
+        );
+
+        totalValue += pendingAsset.current_value;
+
+        if (assetBreakdown[pendingAsset.category]) {
+          assetBreakdown[pendingAsset.category] += pendingAsset.current_value;
+        } else {
+          assetBreakdown[pendingAsset.category] = pendingAsset.current_value;
+        }
+      }
+
+      const valuationDate = `${selectedMonth}-15`;
+
       for (const update of updates) {
+        if (update.id.startsWith("pending-")) continue;
+
         await supabase
           .from("assets")
           .update({ current_value: update.new_value })
           .eq("id", update.id);
+
+        if (
+          update.category === "gold" &&
+          update.ounces &&
+          update.exchange_rate
+        ) {
+          await updateGoldDetails(
+            update.id,
+            update.ounces,
+            update.exchange_rate
+          );
+        }
+
+        if (
+          update.category === "currencies" &&
+          update.amount &&
+          update.exchange_rate
+        ) {
+          await updateCurrencyDetails(
+            update.id,
+            update.amount,
+            update.exchange_rate
+          );
+        }
+
+        const valuationData: any = {
+          asset_id: update.id,
+          valuation_date: valuationDate,
+          value: update.new_value,
+          source: "manual",
+          created_at: new Date().toISOString(),
+        };
+
+        if (update.category === "gold" || update.category === "currencies") {
+          valuationData.quantity =
+            update.category === "gold" ? update.ounces : update.amount;
+          valuationData.exchange_rate = update.exchange_rate;
+        }
+
+        await supabase
+          .from("asset_valuations")
+          .upsert(valuationData, { onConflict: "asset_id,valuation_date" });
 
         totalValue += update.new_value;
 
@@ -215,6 +291,7 @@ export default function PortfolioUpdate() {
       await refetch();
       await loadSnapshots();
 
+      setPendingAssets([]);
       setSuccess(
         `Aktualizacja portfela za ${
           generateMonthOptions().find((m) => m.value === selectedMonth)?.label
@@ -229,33 +306,17 @@ export default function PortfolioUpdate() {
     }
   };
 
-  const handleAddNewAssets = async (assetsToSave: AssetWithDetails[]) => {
-    setLoading(true);
-    setError("");
+  const handleAddNewAssets = (assetsToSave: AssetWithDetails[]) => {
+    setPendingAssets((prev) => [...prev, ...assetsToSave]);
+    setSuccess(
+      "Nowe aktywa dodane do listy. Zapisz aktualizację, aby je zachować."
+    );
+    setStep("update-form");
+    setSelectedTypes([]);
+  };
 
-    try {
-      for (const asset of assetsToSave) {
-        await addAsset(
-          {
-            name: asset.name,
-            category: asset.category,
-            current_value: asset.current_value,
-            currency: asset.currency,
-            portfolio_type: "real",
-          },
-          asset.details
-        );
-      }
-
-      await refetch();
-      setSuccess("Nowe aktywa zostały dodane!");
-      setStep("update-form");
-      setSelectedTypes([]);
-    } catch (err: any) {
-      setError(err.message || "Nie udało się dodać nowych aktywów");
-    } finally {
-      setLoading(false);
-    }
+  const removePendingAsset = (index: number) => {
+    setPendingAssets((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteAsset = async (assetId: string) => {
@@ -370,10 +431,12 @@ export default function PortfolioUpdate() {
           </button>
           <PortfolioUpdateForm
             assets={assets}
+            pendingAssets={pendingAssets}
             selectedMonth={selectedMonth}
             onSave={handleUpdateSave}
             onAddNew={handleAddNew}
             onDelete={handleDeleteAsset}
+            onRemovePending={removePendingAsset}
             currentDate={getCurrentDate()}
           />
         </div>

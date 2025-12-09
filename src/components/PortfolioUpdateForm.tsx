@@ -39,23 +39,47 @@ interface AssetUpdate {
   amount?: number;
   isMatured?: boolean;
   maturityInfo?: string;
+  isNewThisMonth?: boolean;
+  originalValue?: number;
+}
+
+interface PendingAsset {
+  name: string;
+  category: AssetCategory;
+  current_value: number;
+  currency: string;
+  details?: any;
 }
 
 interface PortfolioUpdateFormProps {
   assets: Asset[];
+  pendingAssets: PendingAsset[];
   selectedMonth: string;
   onSave: (updates: AssetUpdate[]) => Promise<void>;
   onAddNew: () => void;
   onDelete: (assetId: string) => Promise<void>;
+  onRemovePending: (index: number) => void;
   currentDate: string;
+}
+
+function isValueEditable(category: AssetCategory): boolean {
+  const nonEditableCategories: AssetCategory[] = [
+    "gold",
+    "currencies",
+    "deposits",
+    "bonds",
+  ];
+  return !nonEditableCategories.includes(category);
 }
 
 export default function PortfolioUpdateForm({
   assets,
+  pendingAssets,
   selectedMonth,
   onSave,
   onAddNew,
   onDelete,
+  onRemovePending,
   currentDate,
 }: PortfolioUpdateFormProps) {
   const [assetUpdates, setAssetUpdates] = useState<AssetUpdate[]>([]);
@@ -68,11 +92,27 @@ export default function PortfolioUpdateForm({
       setDetailsLoading(true);
 
       const updates: AssetUpdate[] = [];
+      const existingUpdatesMap = new Map(assetUpdates.map((u) => [u.id, u]));
+
+      const monthStart = new Date(selectedMonth + "-01");
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
 
       for (const asset of assets) {
+        const existingUpdate = existingUpdatesMap.get(asset.id);
+
+        if (existingUpdate) {
+          updates.push(existingUpdate);
+          continue;
+        }
+
         let details: AssetDetails | undefined;
         let isMatured = false;
         let maturityInfo = "";
+
+        const assetCreatedAt = new Date(asset.created_at);
+        const isNewThisMonth =
+          assetCreatedAt >= monthStart && assetCreatedAt < monthEnd;
 
         try {
           const detailsArray = await fetchAllAssetDetails(
@@ -111,6 +151,8 @@ export default function PortfolioUpdateForm({
           console.error("Error fetching details for asset:", asset.id, e);
         }
 
+        const originalValue = isNewThisMonth ? 0 : asset.current_value;
+
         updates.push({
           id: asset.id,
           name: asset.name,
@@ -124,6 +166,36 @@ export default function PortfolioUpdateForm({
           amount: details?.amount,
           isMatured,
           maturityInfo,
+          isNewThisMonth,
+          originalValue,
+        });
+      }
+
+      for (let i = 0; i < pendingAssets.length; i++) {
+        const pending = pendingAssets[i];
+        const pendingId = `pending-${i}`;
+
+        const existingPending = existingUpdatesMap.get(pendingId);
+        if (existingPending) {
+          updates.push(existingPending);
+          continue;
+        }
+
+        updates.push({
+          id: pendingId,
+          name: pending.name,
+          category: pending.category,
+          current_value: pending.current_value,
+          new_value: pending.current_value,
+          isEditing: false,
+          details: pending.details,
+          ounces: pending.details?.ounces,
+          exchange_rate: pending.details?.exchange_rate,
+          amount: pending.details?.amount,
+          isMatured: false,
+          maturityInfo: "",
+          isNewThisMonth: true,
+          originalValue: 0,
         });
       }
 
@@ -132,7 +204,7 @@ export default function PortfolioUpdateForm({
     }
 
     loadDetails();
-  }, [assets, currentDate]);
+  }, [assets, pendingAssets, currentDate, selectedMonth]);
 
   function calculateBondMaturity(
     bondType?: string,
@@ -216,19 +288,21 @@ export default function PortfolioUpdateForm({
     }
   };
 
-  const hasChanges = assetUpdates.some(
-    (asset) => asset.new_value !== asset.current_value
-  );
+  const hasChanges =
+    assetUpdates.some(
+      (asset) =>
+        asset.new_value !== (asset.originalValue ?? asset.current_value)
+    ) || assetUpdates.some((asset) => asset.isNewThisMonth);
 
-  const totalCurrentValue = assetUpdates.reduce(
-    (sum, asset) => sum + asset.current_value,
+  const totalOriginalValue = assetUpdates.reduce(
+    (sum, asset) => sum + (asset.originalValue ?? asset.current_value),
     0
   );
   const totalNewValue = assetUpdates.reduce(
     (sum, asset) => sum + asset.new_value,
     0
   );
-  const valueDiff = totalNewValue - totalCurrentValue;
+  const valueDiff = totalNewValue - totalOriginalValue;
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -259,7 +333,10 @@ export default function PortfolioUpdateForm({
           <div>
             <p className="text-xs text-gray-600 mb-1">Obecna wartość</p>
             <p className="text-lg font-semibold text-gray-900">
-              {totalCurrentValue.toFixed(2)} PLN
+              {totalOriginalValue.toLocaleString("pl-PL", {
+                minimumFractionDigits: 2,
+              })}{" "}
+              PLN
             </p>
           </div>
           <div>
@@ -330,6 +407,18 @@ export default function PortfolioUpdateForm({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900">{asset.name}</p>
+                      {asset.isNewThisMonth &&
+                        asset.id.startsWith("pending-") && (
+                          <span className="px-2 py-0.5 text-xs bg-yellow-200 text-yellow-800 rounded-full">
+                            Niezapisane
+                          </span>
+                        )}
+                      {asset.isNewThisMonth &&
+                        !asset.id.startsWith("pending-") && (
+                          <span className="px-2 py-0.5 text-xs bg-green-200 text-green-800 rounded-full">
+                            Nowe
+                          </span>
+                        )}
                       {asset.isMatured && (
                         <span className="px-2 py-0.5 text-xs bg-amber-200 text-amber-800 rounded-full">
                           Zakończone
@@ -485,9 +574,13 @@ export default function PortfolioUpdateForm({
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="text-xs text-gray-600">Obecna</p>
+                      <p className="text-xs text-gray-600">
+                        {asset.isNewThisMonth ? "Poprzednia" : "Obecna"}
+                      </p>
                       <p className="text-sm font-medium text-gray-900">
-                        {asset.current_value.toLocaleString("pl-PL", {
+                        {(
+                          asset.originalValue ?? asset.current_value
+                        ).toLocaleString("pl-PL", {
                           minimumFractionDigits: 2,
                         })}{" "}
                         PLN
@@ -496,7 +589,7 @@ export default function PortfolioUpdateForm({
 
                     <div className="text-gray-400">→</div>
 
-                    {asset.isEditing ? (
+                    {asset.isEditing && isValueEditable(asset.category) ? (
                       <div className="w-32">
                         <input
                           type="number"
@@ -514,7 +607,8 @@ export default function PortfolioUpdateForm({
                         <p className="text-xs text-gray-600">Nowa</p>
                         <p
                           className={`text-sm font-medium ${
-                            asset.new_value !== asset.current_value
+                            asset.new_value !==
+                            (asset.originalValue ?? asset.current_value)
                               ? "text-blue-600"
                               : "text-gray-900"
                           }`}
@@ -527,19 +621,31 @@ export default function PortfolioUpdateForm({
                       </div>
                     )}
 
-                    <button
-                      onClick={() => toggleEdit(asset.id)}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title={asset.isEditing ? "Zatwierdź" : "Edytuj"}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
+                    {isValueEditable(asset.category) && (
+                      <button
+                        onClick={() => toggleEdit(asset.id)}
+                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title={asset.isEditing ? "Zatwierdź" : "Edytuj"}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
 
                     {deleteConfirm === asset.id ? (
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
-                            onDelete(asset.id);
+                            if (asset.id.startsWith("pending-")) {
+                              const pendingIndex = parseInt(
+                                asset.id.replace("pending-", "")
+                              );
+                              onRemovePending(pendingIndex);
+                              setAssetUpdates((prev) =>
+                                prev.filter((a) => a.id !== asset.id)
+                              );
+                            } else {
+                              onDelete(asset.id);
+                            }
                             setDeleteConfirm(null);
                           }}
                           className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"

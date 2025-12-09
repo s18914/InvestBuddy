@@ -12,6 +12,7 @@ import Assets from "./pages/Assets";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import { Onboarding } from "./pages/Onboarding";
+import Rebalancing from "./pages/Rebalancing";
 
 function AppContent() {
   useProfile();
@@ -32,6 +33,7 @@ function AppContent() {
                   <Route path="/details" element={<PortfolioDetails />} />
                   <Route path="/assets" element={<Assets />} />
                   <Route path="/update" element={<PortfolioUpdate />} />
+                  <Route path="/rebalancing" element={<Rebalancing />} />
                 </Routes>
               </Layout>
             </OnboardingGuard>

@@ -14,7 +14,7 @@ import RetirementAccountsForm from "./assetForms/RetirementAccountsForm";
 interface AssetDetailsWizardProps {
   selectedTypes: AssetCategory[];
   onBack: () => void;
-  onSave: (assets: AssetWithDetails[]) => Promise<void>;
+  onSave: (assets: AssetWithDetails[]) => void;
 }
 
 export default function AssetDetailsWizard({

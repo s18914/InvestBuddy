@@ -1,13 +1,13 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
   User,
   RefreshCw,
   TrendingUp,
   LogOut,
   PieChart,
   Wallet,
+  Scale,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -21,10 +21,10 @@ export default function Layout({ children }: LayoutProps) {
   const { signOut, user } = useAuth();
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/details", label: "Szczegóły portfela", icon: PieChart },
+    { path: "/details", label: "Portfel", icon: PieChart },
     { path: "/assets", label: "Aktywa", icon: Wallet },
-    { path: "/update", label: "Aktualizacja portfela", icon: RefreshCw },
+    { path: "/update", label: "Aktualizacja", icon: RefreshCw },
+    { path: "/rebalancing", label: "Rebalancing", icon: Scale },
     { path: "/profile", label: "Profil", icon: User },
   ];
 
@@ -43,12 +43,13 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
+              <Link className="flex-shrink-0 flex items-center" to="/">
                 <TrendingUp className="h-8 w-8 text-blue-600" />
                 <span className="ml-2 text-xl font-bold text-gray-900">
                   InvestBuddy
                 </span>
-              </div>
+              </Link>
+
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navItems.map((item) => {
                   const Icon = item.icon;
