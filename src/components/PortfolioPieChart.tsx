@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from "recharts";
 import { Asset } from "@/types/database.types";
-import { getCategoryColor, getCategoryLabel } from "@/types/assetConfig";
+import { getCategoryColor, getCategoryLabel } from "@/constants";
 
 interface PortfolioPieChartProps {
   assets: Asset[];

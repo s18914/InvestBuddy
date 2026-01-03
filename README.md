@@ -49,16 +49,31 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ```
 src/
-├── components/     # Reusable UI components
-├── pages/          # Page components (Dashboard, Profile, etc.)
-├── lib/            # Utilities and configurations
-├── types/          # TypeScript type definitions
-└── App.tsx         # Main app component
+├── components/          # React components
+│   ├── ui/             # shadcn/ui base components
+│   ├── assetForms/     # Asset-specific forms
+│   ├── onboarding/     # Onboarding flow steps
+│   └── questionnaire/  # MiFID questionnaire components
+├── contexts/           # React Context providers (Auth, TestMode)
+├── hooks/              # Custom React hooks
+├── pages/              # Main application pages
+├── repositories/       # Data access layer (Repository Pattern)
+│   ├── BaseRepository.ts
+│   ├── AssetRepository.ts
+│   ├── AssetDetailsRepository.ts
+│   ├── SnapshotRepository.ts
+│   └── ValuationRepository.ts
+├── services/           # Business logic layer
+├── types/              # TypeScript type definitions
+├── lib/                # External library configurations
+├── constants.ts        # Centralized configuration and constants
+└── App.tsx             # Main application component
 ```
 
 ## Features
 
 ### Core Functionality
+
 - Portfolio tracking and visualization
 - MiFID investor profiling
 - Target portfolio vs actual comparison
@@ -66,6 +81,7 @@ src/
 - Transaction history
 
 ### Asset Types
+
 - Bonds (Obligacje)
 - Deposits (Lokaty)
 - Savings Accounts (Konta oszczędnościowe)
@@ -78,18 +94,51 @@ src/
 - Custom assets
 
 ### Special Features
+
 - Deposit maturity alerts
 - IKE/IKZE annual contribution calculator
 - Cash excess warnings
 - Portfolio deviation monitoring
 
+## Architecture
+
+### Repository Pattern
+
+Clean separation of data access logic:
+
+- **BaseRepository**: Generic CRUD operations
+- **AssetRepository**: Asset-specific queries
+- **AssetDetailsRepository**: Asset details management
+- **SnapshotRepository**: Portfolio snapshots
+- **ValuationRepository**: Historical valuations
+
+### Service Layer
+
+Business logic abstraction:
+
+- `assetDetailsService.ts` - Asset details operations
+- `questionnaireService.ts` - MiFID questionnaire logic
+- `userResetService.ts` - User data management
+
+### Constants & Configuration
+
+Centralized in `constants.ts`:
+
+- Retirement limits (IKE/IKZE) with dynamic year support
+- Bond types, deposit durations, fund categories
+- Currency lists and asset colors
+- Helper functions for category management
+
 ## Development
 
 Built with modern best practices:
+
 - TypeScript for type safety
+- Repository Pattern for data access
 - ESLint for code quality
 - Vite for fast development
 - Component-based architecture
+- Custom React hooks for state management
 
 ## License
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, ArrowRight } from "lucide-react";
 import { AssetCategory } from "@/types/database.types";
-import { PREDEFINED_ASSETS } from "@/types/assetConfig";
+import { PREDEFINED_ASSETS } from "@/constants";
 
 interface AssetTypeSelectorProps {
   onContinue: (selectedTypes: AssetCategory[]) => void;

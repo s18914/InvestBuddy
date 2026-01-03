@@ -281,25 +281,6 @@ export default function PortfolioStackedChart() {
           ))}
         </AreaChart>
       </ResponsiveContainer>
-
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex flex-wrap gap-3">
-          {assetCategories.map((category) => (
-            <div
-              key={category}
-              className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full"
-            >
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getCategoryColor(category) }}
-              />
-              <span className="text-sm text-gray-700">
-                {getCategoryLabel(category)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
