@@ -53,18 +53,15 @@ export function Onboarding() {
     age: 0,
     monthlyLivingCosts: 0,
   });
-  const [cushionAllocation, setCushionAllocation] =
-    useState<SafetyCushionAllocation>({
-      deposits: 12.5,
-      savingsAccounts: 12.5,
-      inflationBonds: 75,
-    });
+  const [cushionAllocation] = useState<SafetyCushionAllocation>({
+    deposits: 12.5,
+    savingsAccounts: 12.5,
+    inflationBonds: 75,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mifidAnswers, setMifidAnswers] = useState<QuestionnaireAnswers | null>(
-    null
-  );
+  const [, setMifidAnswers] = useState<QuestionnaireAnswers | null>(null);
   const [mifidResult, setMifidResult] = useState<QuestionnaireResult | null>(
-    null
+    null,
   );
 
   const targetCushionAmount = basicInfo.monthlyLivingCosts * 6;
@@ -112,7 +109,7 @@ export function Onboarding() {
   };
 
   const handleSafetyCushionSubmit = async (
-    allocation: SafetyCushionAllocation
+    allocation: SafetyCushionAllocation,
   ) => {
     if (!user) return;
 
@@ -377,8 +374,8 @@ export function Onboarding() {
                 currentStep === "basic-info"
                   ? "text-blue-600"
                   : currentStep === "mifid" || currentStep === "mifid-summary"
-                  ? "text-gray-400"
-                  : "text-green-600"
+                    ? "text-gray-400"
+                    : "text-green-600"
               }`}
             >
               <div
@@ -386,8 +383,8 @@ export function Onboarding() {
                   currentStep === "basic-info"
                     ? "bg-blue-600 text-white"
                     : currentStep === "mifid" || currentStep === "mifid-summary"
-                    ? "bg-gray-300 text-gray-600"
-                    : "bg-green-600 text-white"
+                      ? "bg-gray-300 text-gray-600"
+                      : "bg-green-600 text-white"
                 }`}
               >
                 2
@@ -400,10 +397,10 @@ export function Onboarding() {
                 currentStep === "safety-cushion"
                   ? "text-blue-600"
                   : currentStep === "mifid" ||
-                    currentStep === "mifid-summary" ||
-                    currentStep === "basic-info"
-                  ? "text-gray-400"
-                  : "text-green-600"
+                      currentStep === "mifid-summary" ||
+                      currentStep === "basic-info"
+                    ? "text-gray-400"
+                    : "text-green-600"
               }`}
             >
               <div
@@ -411,10 +408,10 @@ export function Onboarding() {
                   currentStep === "safety-cushion"
                     ? "bg-blue-600 text-white"
                     : currentStep === "mifid" ||
-                      currentStep === "mifid-summary" ||
-                      currentStep === "basic-info"
-                    ? "bg-gray-300 text-gray-600"
-                    : "bg-green-600 text-white"
+                        currentStep === "mifid-summary" ||
+                        currentStep === "basic-info"
+                      ? "bg-gray-300 text-gray-600"
+                      : "bg-green-600 text-white"
                 }`}
               >
                 3

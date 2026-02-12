@@ -1,3 +1,8 @@
+import { AssetRepository } from "./AssetRepository";
+import { AssetDetailsRepository } from "./AssetDetailsRepository";
+import { SnapshotRepository } from "./SnapshotRepository";
+import { ValuationRepository } from "./ValuationRepository";
+
 export { BaseRepository } from "./BaseRepository";
 export { AssetRepository } from "./AssetRepository";
 export { AssetDetailsRepository } from "./AssetDetailsRepository";

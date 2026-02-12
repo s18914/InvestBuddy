@@ -38,9 +38,9 @@ export default function PortfolioUpdate() {
   const [selectedTypes, setSelectedTypes] = useState<AssetCategory[]>([]);
   const [snapshots, setSnapshots] = useState<MonthSnapshot[]>([]);
   const [portfolioStartDate, setPortfolioStartDate] = useState<Date | null>(
-    null
+    null,
   );
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [pendingAssets, setPendingAssets] = useState<AssetWithDetails[]>([]);
@@ -79,14 +79,14 @@ export default function PortfolioUpdate() {
     const startMonth = new Date(
       portfolioStartDate.getFullYear(),
       portfolioStartDate.getMonth() + 1,
-      1
+      1,
     );
 
     // End at current month (but don't include current month if we're still in it)
     const endMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1
+      1,
     );
 
     // If start month is after or equal to end month, no updates available yet
@@ -214,7 +214,7 @@ export default function PortfolioUpdate() {
             portfolio_type: "real",
           },
           pendingAsset.details,
-          updateCreatedAt
+          updateCreatedAt,
         );
 
         totalValue += pendingAsset.current_value;
@@ -244,7 +244,7 @@ export default function PortfolioUpdate() {
           await updateGoldDetails(
             update.id,
             update.ounces,
-            update.exchange_rate
+            update.exchange_rate,
           );
         }
 
@@ -256,7 +256,7 @@ export default function PortfolioUpdate() {
           await updateCurrencyDetails(
             update.id,
             update.amount,
-            update.exchange_rate
+            update.exchange_rate,
           );
         }
 
@@ -295,7 +295,7 @@ export default function PortfolioUpdate() {
       setSuccess(
         `Aktualizacja portfela za ${
           generateMonthOptions().find((m) => m.value === selectedMonth)?.label
-        } została zapisana!`
+        } została zapisana!`,
       );
       setStep("month-select");
       setSelectedMonth("");
@@ -309,7 +309,7 @@ export default function PortfolioUpdate() {
   const handleAddNewAssets = (assetsToSave: AssetWithDetails[]) => {
     setPendingAssets((prev) => [...prev, ...assetsToSave]);
     setSuccess(
-      "Nowe aktywa dodane do listy. Zapisz aktualizację, aby je zachować."
+      "Nowe aktywa dodane do listy. Zapisz aktualizację, aby je zachować.",
     );
     setStep("update-form");
     setSelectedTypes([]);
