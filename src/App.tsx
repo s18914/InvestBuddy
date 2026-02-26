@@ -10,6 +10,8 @@ import PortfolioUpdate from "./pages/PortfolioUpdate";
 import PortfolioDetails from "./pages/PortfolioDetails";
 import Assets from "./pages/Assets";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Layout from "./components/Layout";
 import { Onboarding } from "./pages/Onboarding";
 import Rebalancing from "./pages/Rebalancing";
@@ -20,6 +22,8 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route
         path="/*"

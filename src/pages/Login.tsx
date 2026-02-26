@@ -129,7 +129,17 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-3">
+          {!isSignUp && (
+            <div>
+              <a
+                href="/forgot-password"
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                Zapomniałeś hasła?
+              </a>
+            </div>
+          )}
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
